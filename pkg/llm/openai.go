@@ -22,11 +22,11 @@ import (
 	"github.com/pkg/errors"
 	oai "github.com/sashabaranov/go-openai"
 
-	"github.com/glidea/zenfeed/pkg/component"
-	"github.com/glidea/zenfeed/pkg/model"
-	"github.com/glidea/zenfeed/pkg/telemetry"
-	telemetrymodel "github.com/glidea/zenfeed/pkg/telemetry/model"
-	runtimeutil "github.com/glidea/zenfeed/pkg/util/runtime"
+	"github.com/vandeefeng/zenfeed/pkg/component"
+	"github.com/vandeefeng/zenfeed/pkg/model"
+	"github.com/vandeefeng/zenfeed/pkg/telemetry"
+	telemetrymodel "github.com/vandeefeng/zenfeed/pkg/telemetry/model"
+	runtimeutil "github.com/vandeefeng/zenfeed/pkg/util/runtime"
 )
 
 type openai struct {

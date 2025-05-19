@@ -22,9 +22,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/glidea/zenfeed/pkg/component"
-	"github.com/glidea/zenfeed/pkg/storage/feed"
-	"github.com/glidea/zenfeed/pkg/storage/feed/block"
+	"github.com/vandeefeng/zenfeed/pkg/component"
+	"github.com/vandeefeng/zenfeed/pkg/storage/feed"
+	"github.com/vandeefeng/zenfeed/pkg/storage/feed/block"
 )
 
 // --- Interface code block ---

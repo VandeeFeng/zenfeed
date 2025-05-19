@@ -19,7 +19,7 @@ import (
 	"math"
 	"slices"
 
-	"github.com/glidea/zenfeed/pkg/model"
+	"github.com/vandeefeng/zenfeed/pkg/model"
 )
 
 type embeddingSpliter interface {

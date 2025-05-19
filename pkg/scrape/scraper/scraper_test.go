@@ -21,8 +21,8 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/glidea/zenfeed/pkg/test"
-	timeutil "github.com/glidea/zenfeed/pkg/util/time"
+	"github.com/vandeefeng/zenfeed/pkg/test"
+	timeutil "github.com/vandeefeng/zenfeed/pkg/util/time"
 )
 
 func TestConfig_Validate(t *testing.T) {

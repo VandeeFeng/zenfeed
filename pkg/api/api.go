@@ -28,16 +28,16 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/glidea/zenfeed/pkg/component"
-	"github.com/glidea/zenfeed/pkg/config"
-	"github.com/glidea/zenfeed/pkg/llm"
-	"github.com/glidea/zenfeed/pkg/model"
-	"github.com/glidea/zenfeed/pkg/storage/feed"
-	"github.com/glidea/zenfeed/pkg/storage/feed/block"
-	telemetry "github.com/glidea/zenfeed/pkg/telemetry"
-	telemetrymodel "github.com/glidea/zenfeed/pkg/telemetry/model"
-	jsonschema "github.com/glidea/zenfeed/pkg/util/json_schema"
-	"github.com/glidea/zenfeed/pkg/util/rpc"
+	"github.com/vandeefeng/zenfeed/pkg/component"
+	"github.com/vandeefeng/zenfeed/pkg/config"
+	"github.com/vandeefeng/zenfeed/pkg/llm"
+	"github.com/vandeefeng/zenfeed/pkg/model"
+	"github.com/vandeefeng/zenfeed/pkg/storage/feed"
+	"github.com/vandeefeng/zenfeed/pkg/storage/feed/block"
+	telemetry "github.com/vandeefeng/zenfeed/pkg/telemetry"
+	telemetrymodel "github.com/vandeefeng/zenfeed/pkg/telemetry/model"
+	jsonschema "github.com/vandeefeng/zenfeed/pkg/util/json_schema"
+	"github.com/vandeefeng/zenfeed/pkg/util/rpc"
 )
 
 // --- Interface code block ---

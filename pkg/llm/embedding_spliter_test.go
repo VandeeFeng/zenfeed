@@ -20,8 +20,8 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/glidea/zenfeed/pkg/model"
-	"github.com/glidea/zenfeed/pkg/test"
+	"github.com/vandeefeng/zenfeed/pkg/model"
+	"github.com/vandeefeng/zenfeed/pkg/test"
 )
 
 func TestEmbeddingSpliter_Split(t *testing.T) {

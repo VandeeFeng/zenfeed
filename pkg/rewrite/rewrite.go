@@ -25,13 +25,13 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/utils/ptr"
 
-	"github.com/glidea/zenfeed/pkg/component"
-	"github.com/glidea/zenfeed/pkg/config"
-	"github.com/glidea/zenfeed/pkg/llm"
-	"github.com/glidea/zenfeed/pkg/model"
-	"github.com/glidea/zenfeed/pkg/telemetry"
-	telemetrymodel "github.com/glidea/zenfeed/pkg/telemetry/model"
-	"github.com/glidea/zenfeed/pkg/util/buffer"
+	"github.com/vandeefeng/zenfeed/pkg/component"
+	"github.com/vandeefeng/zenfeed/pkg/config"
+	"github.com/vandeefeng/zenfeed/pkg/llm"
+	"github.com/vandeefeng/zenfeed/pkg/model"
+	"github.com/vandeefeng/zenfeed/pkg/telemetry"
+	telemetrymodel "github.com/vandeefeng/zenfeed/pkg/telemetry/model"
+	"github.com/vandeefeng/zenfeed/pkg/util/buffer"
 )
 
 // --- Interface code block ---

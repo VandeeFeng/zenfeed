@@ -26,8 +26,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"k8s.io/utils/ptr"
 
-	"github.com/glidea/zenfeed/pkg/model"
-	"github.com/glidea/zenfeed/pkg/test"
+	"github.com/vandeefeng/zenfeed/pkg/model"
+	"github.com/vandeefeng/zenfeed/pkg/test"
 )
 
 func TestNewRSS(t *testing.T) {

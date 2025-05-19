@@ -27,11 +27,11 @@ package feed
 // 	. "github.com/onsi/gomega"
 // 	"github.com/stretchr/testify/mock"
 
-// 	"github.com/glidea/zenfeed/pkg/config"
-// 	"github.com/glidea/zenfeed/pkg/storage/feed/block"
-// 	"github.com/glidea/zenfeed/pkg/storage/feed/block/chunk"
-// 	"github.com/glidea/zenfeed/pkg/test"
-// 	timeutil "github.com/glidea/zenfeed/pkg/util/time"
+// 	"github.com/vandeefeng/zenfeed/pkg/config"
+// 	"github.com/vandeefeng/zenfeed/pkg/storage/feed/block"
+// 	"github.com/vandeefeng/zenfeed/pkg/storage/feed/block/chunk"
+// 	"github.com/vandeefeng/zenfeed/pkg/test"
+// 	timeutil "github.com/vandeefeng/zenfeed/pkg/util/time"
 // )
 
 // func TestNew(t *testing.T) {

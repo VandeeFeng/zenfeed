@@ -21,7 +21,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"github.com/glidea/zenfeed/pkg/model"
+	"github.com/vandeefeng/zenfeed/pkg/model"
 )
 
 // --- Interface code block ---

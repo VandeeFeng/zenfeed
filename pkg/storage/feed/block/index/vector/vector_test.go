@@ -7,7 +7,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/glidea/zenfeed/pkg/test"
+	"github.com/vandeefeng/zenfeed/pkg/test"
 )
 
 func TestSearch(t *testing.T) {

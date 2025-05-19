@@ -23,16 +23,16 @@ import (
 	"github.com/benbjohnson/clock"
 	"github.com/pkg/errors"
 
-	"github.com/glidea/zenfeed/pkg/component"
-	"github.com/glidea/zenfeed/pkg/model"
-	"github.com/glidea/zenfeed/pkg/storage/feed"
-	"github.com/glidea/zenfeed/pkg/storage/kv"
-	"github.com/glidea/zenfeed/pkg/telemetry"
-	"github.com/glidea/zenfeed/pkg/telemetry/log"
-	telemetrymodel "github.com/glidea/zenfeed/pkg/telemetry/model"
-	hashutil "github.com/glidea/zenfeed/pkg/util/hash"
-	"github.com/glidea/zenfeed/pkg/util/retry"
-	timeutil "github.com/glidea/zenfeed/pkg/util/time"
+	"github.com/vandeefeng/zenfeed/pkg/component"
+	"github.com/vandeefeng/zenfeed/pkg/model"
+	"github.com/vandeefeng/zenfeed/pkg/storage/feed"
+	"github.com/vandeefeng/zenfeed/pkg/storage/kv"
+	"github.com/vandeefeng/zenfeed/pkg/telemetry"
+	"github.com/vandeefeng/zenfeed/pkg/telemetry/log"
+	telemetrymodel "github.com/vandeefeng/zenfeed/pkg/telemetry/model"
+	hashutil "github.com/vandeefeng/zenfeed/pkg/util/hash"
+	"github.com/vandeefeng/zenfeed/pkg/util/retry"
+	timeutil "github.com/vandeefeng/zenfeed/pkg/util/time"
 )
 
 var clk = clock.New()

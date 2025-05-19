@@ -25,17 +25,17 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/glidea/zenfeed/pkg/component"
-	"github.com/glidea/zenfeed/pkg/config"
-	"github.com/glidea/zenfeed/pkg/llm"
-	"github.com/glidea/zenfeed/pkg/notify/channel"
-	"github.com/glidea/zenfeed/pkg/notify/route"
-	"github.com/glidea/zenfeed/pkg/schedule/rule"
-	"github.com/glidea/zenfeed/pkg/storage/kv"
-	"github.com/glidea/zenfeed/pkg/telemetry"
-	"github.com/glidea/zenfeed/pkg/telemetry/log"
-	telemetrymodel "github.com/glidea/zenfeed/pkg/telemetry/model"
-	timeutil "github.com/glidea/zenfeed/pkg/util/time"
+	"github.com/vandeefeng/zenfeed/pkg/component"
+	"github.com/vandeefeng/zenfeed/pkg/config"
+	"github.com/vandeefeng/zenfeed/pkg/llm"
+	"github.com/vandeefeng/zenfeed/pkg/notify/channel"
+	"github.com/vandeefeng/zenfeed/pkg/notify/route"
+	"github.com/vandeefeng/zenfeed/pkg/schedule/rule"
+	"github.com/vandeefeng/zenfeed/pkg/storage/kv"
+	"github.com/vandeefeng/zenfeed/pkg/telemetry"
+	"github.com/vandeefeng/zenfeed/pkg/telemetry/log"
+	telemetrymodel "github.com/vandeefeng/zenfeed/pkg/telemetry/model"
+	timeutil "github.com/vandeefeng/zenfeed/pkg/util/time"
 )
 
 // --- Interface code block ---

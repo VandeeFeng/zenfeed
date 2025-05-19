@@ -11,13 +11,13 @@ import (
 	"github.com/stretchr/testify/mock"
 	"k8s.io/utils/ptr"
 
-	"github.com/glidea/zenfeed/pkg/component"
-	"github.com/glidea/zenfeed/pkg/llm"
-	"github.com/glidea/zenfeed/pkg/model"
-	"github.com/glidea/zenfeed/pkg/schedule/rule"
-	"github.com/glidea/zenfeed/pkg/storage/feed/block"
-	"github.com/glidea/zenfeed/pkg/test"
-	timeutil "github.com/glidea/zenfeed/pkg/util/time"
+	"github.com/vandeefeng/zenfeed/pkg/component"
+	"github.com/vandeefeng/zenfeed/pkg/llm"
+	"github.com/vandeefeng/zenfeed/pkg/model"
+	"github.com/vandeefeng/zenfeed/pkg/schedule/rule"
+	"github.com/vandeefeng/zenfeed/pkg/storage/feed/block"
+	"github.com/vandeefeng/zenfeed/pkg/test"
+	timeutil "github.com/vandeefeng/zenfeed/pkg/util/time"
 )
 
 func TestRoute(t *testing.T) {

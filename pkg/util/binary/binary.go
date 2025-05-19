@@ -23,7 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/glidea/zenfeed/pkg/util/buffer"
+	"github.com/vandeefeng/zenfeed/pkg/util/buffer"
 )
 
 // WriteString writes a string to a writer.

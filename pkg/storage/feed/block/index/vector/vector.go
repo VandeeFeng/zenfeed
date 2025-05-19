@@ -16,14 +16,14 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-	"github.com/glidea/zenfeed/pkg/component"
-	"github.com/glidea/zenfeed/pkg/model"
-	"github.com/glidea/zenfeed/pkg/storage/feed/block/index"
-	"github.com/glidea/zenfeed/pkg/telemetry"
-	telemetrymodel "github.com/glidea/zenfeed/pkg/telemetry/model"
-	"github.com/glidea/zenfeed/pkg/util/heap"
-	timeutil "github.com/glidea/zenfeed/pkg/util/time"
-	vectorutil "github.com/glidea/zenfeed/pkg/util/vector"
+	"github.com/vandeefeng/zenfeed/pkg/component"
+	"github.com/vandeefeng/zenfeed/pkg/model"
+	"github.com/vandeefeng/zenfeed/pkg/storage/feed/block/index"
+	"github.com/vandeefeng/zenfeed/pkg/telemetry"
+	telemetrymodel "github.com/vandeefeng/zenfeed/pkg/telemetry/model"
+	"github.com/vandeefeng/zenfeed/pkg/util/heap"
+	timeutil "github.com/vandeefeng/zenfeed/pkg/util/time"
+	vectorutil "github.com/vandeefeng/zenfeed/pkg/util/vector"
 )
 
 // --- Interface code block ---

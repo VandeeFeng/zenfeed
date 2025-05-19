@@ -21,7 +21,7 @@ import (
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/renderer/html"
 
-	"github.com/glidea/zenfeed/pkg/util/buffer"
+	"github.com/vandeefeng/zenfeed/pkg/util/buffer"
 )
 
 var (

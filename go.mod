@@ -1,4 +1,4 @@
-module github.com/glidea/zenfeed
+module github.com/vandeefeng/zenfeed
 
 go 1.23.4
 

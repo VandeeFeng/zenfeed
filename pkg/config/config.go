@@ -26,11 +26,11 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 
-	"github.com/glidea/zenfeed/pkg/component"
-	"github.com/glidea/zenfeed/pkg/telemetry"
-	"github.com/glidea/zenfeed/pkg/telemetry/log"
-	telemetrymodel "github.com/glidea/zenfeed/pkg/telemetry/model"
-	timeutil "github.com/glidea/zenfeed/pkg/util/time"
+	"github.com/vandeefeng/zenfeed/pkg/component"
+	"github.com/vandeefeng/zenfeed/pkg/telemetry"
+	"github.com/vandeefeng/zenfeed/pkg/telemetry/log"
+	telemetrymodel "github.com/vandeefeng/zenfeed/pkg/telemetry/model"
+	timeutil "github.com/vandeefeng/zenfeed/pkg/util/time"
 )
 
 // --- Interface code block ---

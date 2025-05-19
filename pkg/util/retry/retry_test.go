@@ -24,7 +24,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/utils/ptr"
 
-	"github.com/glidea/zenfeed/pkg/test"
+	"github.com/vandeefeng/zenfeed/pkg/test"
 )
 
 func TestBackoff(t *testing.T) {

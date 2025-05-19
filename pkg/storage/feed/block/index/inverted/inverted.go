@@ -10,12 +10,12 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/glidea/zenfeed/pkg/component"
-	"github.com/glidea/zenfeed/pkg/model"
-	"github.com/glidea/zenfeed/pkg/storage/feed/block/index"
-	"github.com/glidea/zenfeed/pkg/telemetry"
-	telemetrymodel "github.com/glidea/zenfeed/pkg/telemetry/model"
-	binaryutil "github.com/glidea/zenfeed/pkg/util/binary"
+	"github.com/vandeefeng/zenfeed/pkg/component"
+	"github.com/vandeefeng/zenfeed/pkg/model"
+	"github.com/vandeefeng/zenfeed/pkg/storage/feed/block/index"
+	"github.com/vandeefeng/zenfeed/pkg/telemetry"
+	telemetrymodel "github.com/vandeefeng/zenfeed/pkg/telemetry/model"
+	binaryutil "github.com/vandeefeng/zenfeed/pkg/util/binary"
 )
 
 // --- Interface code block ---

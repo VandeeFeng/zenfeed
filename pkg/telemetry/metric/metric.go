@@ -24,8 +24,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/glidea/zenfeed/pkg/model"
-	telemetrymodel "github.com/glidea/zenfeed/pkg/telemetry/model"
+	"github.com/vandeefeng/zenfeed/pkg/model"
+	telemetrymodel "github.com/vandeefeng/zenfeed/pkg/telemetry/model"
 )
 
 func Handler() http.Handler {

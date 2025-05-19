@@ -116,13 +116,13 @@ package block
 // 	. "github.com/onsi/gomega"
 // 	"github.com/stretchr/testify/mock"
 
-// 	"github.com/glidea/zenfeed/pkg/model"
-// 	"github.com/glidea/zenfeed/pkg/storage/feed/block/chunk"
-// 	// "github.com/glidea/zenfeed/pkg/storage/feed/block/index/inverted"
-// 	// "github.com/glidea/zenfeed/pkg/storage/feed/block/index/primary"
-// 	// "github.com/glidea/zenfeed/pkg/storage/feed/block/index/vector"
-// 	"github.com/glidea/zenfeed/pkg/test"
-// 	runtimeutil "github.com/glidea/zenfeed/pkg/util/runtime"
+// 	"github.com/vandeefeng/zenfeed/pkg/model"
+// 	"github.com/vandeefeng/zenfeed/pkg/storage/feed/block/chunk"
+// 	// "github.com/vandeefeng/zenfeed/pkg/storage/feed/block/index/inverted"
+// 	// "github.com/vandeefeng/zenfeed/pkg/storage/feed/block/index/primary"
+// 	// "github.com/vandeefeng/zenfeed/pkg/storage/feed/block/index/vector"
+// 	"github.com/vandeefeng/zenfeed/pkg/test"
+// 	runtimeutil "github.com/vandeefeng/zenfeed/pkg/util/runtime"
 // )
 
 // func TestNew(t *testing.T) {

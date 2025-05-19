@@ -27,11 +27,11 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/gomail.v2"
 
-	"github.com/glidea/zenfeed/pkg/model"
-	"github.com/glidea/zenfeed/pkg/notify/route"
-	"github.com/glidea/zenfeed/pkg/util/buffer"
-	textconvert "github.com/glidea/zenfeed/pkg/util/text_convert"
-	timeutil "github.com/glidea/zenfeed/pkg/util/time"
+	"github.com/vandeefeng/zenfeed/pkg/model"
+	"github.com/vandeefeng/zenfeed/pkg/notify/route"
+	"github.com/vandeefeng/zenfeed/pkg/util/buffer"
+	textconvert "github.com/vandeefeng/zenfeed/pkg/util/text_convert"
+	timeutil "github.com/vandeefeng/zenfeed/pkg/util/time"
 )
 
 type Email struct {

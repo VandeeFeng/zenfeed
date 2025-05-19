@@ -27,13 +27,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/glidea/zenfeed/pkg/component"
-	"github.com/glidea/zenfeed/pkg/config"
-	"github.com/glidea/zenfeed/pkg/model"
-	"github.com/glidea/zenfeed/pkg/storage/kv"
-	"github.com/glidea/zenfeed/pkg/telemetry/log"
-	telemetrymodel "github.com/glidea/zenfeed/pkg/telemetry/model"
-	"github.com/glidea/zenfeed/pkg/util/hash"
+	"github.com/vandeefeng/zenfeed/pkg/component"
+	"github.com/vandeefeng/zenfeed/pkg/config"
+	"github.com/vandeefeng/zenfeed/pkg/model"
+	"github.com/vandeefeng/zenfeed/pkg/storage/kv"
+	"github.com/vandeefeng/zenfeed/pkg/telemetry/log"
+	telemetrymodel "github.com/vandeefeng/zenfeed/pkg/telemetry/model"
+	"github.com/vandeefeng/zenfeed/pkg/util/hash"
 )
 
 // --- Interface code block ---

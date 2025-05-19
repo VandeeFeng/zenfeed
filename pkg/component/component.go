@@ -24,9 +24,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/glidea/zenfeed/pkg/telemetry"
-	"github.com/glidea/zenfeed/pkg/telemetry/log"
-	telemetrymodel "github.com/glidea/zenfeed/pkg/telemetry/model"
+	"github.com/vandeefeng/zenfeed/pkg/telemetry"
+	"github.com/vandeefeng/zenfeed/pkg/telemetry/log"
+	telemetrymodel "github.com/vandeefeng/zenfeed/pkg/telemetry/model"
 )
 
 // Global is the instance name for the global component.

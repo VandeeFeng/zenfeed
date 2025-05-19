@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/utils/ptr"
 
-	"github.com/glidea/zenfeed/pkg/telemetry/log"
+	"github.com/vandeefeng/zenfeed/pkg/telemetry/log"
 )
 
 type Options struct {

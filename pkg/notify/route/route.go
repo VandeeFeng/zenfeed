@@ -26,15 +26,15 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/utils/ptr"
 
-	"github.com/glidea/zenfeed/pkg/component"
-	"github.com/glidea/zenfeed/pkg/llm"
-	"github.com/glidea/zenfeed/pkg/model"
-	"github.com/glidea/zenfeed/pkg/schedule/rule"
-	"github.com/glidea/zenfeed/pkg/storage/feed/block"
-	"github.com/glidea/zenfeed/pkg/telemetry"
-	telemetrymodel "github.com/glidea/zenfeed/pkg/telemetry/model"
-	runtimeutil "github.com/glidea/zenfeed/pkg/util/runtime"
-	timeutil "github.com/glidea/zenfeed/pkg/util/time"
+	"github.com/vandeefeng/zenfeed/pkg/component"
+	"github.com/vandeefeng/zenfeed/pkg/llm"
+	"github.com/vandeefeng/zenfeed/pkg/model"
+	"github.com/vandeefeng/zenfeed/pkg/schedule/rule"
+	"github.com/vandeefeng/zenfeed/pkg/storage/feed/block"
+	"github.com/vandeefeng/zenfeed/pkg/telemetry"
+	telemetrymodel "github.com/vandeefeng/zenfeed/pkg/telemetry/model"
+	runtimeutil "github.com/vandeefeng/zenfeed/pkg/util/runtime"
+	timeutil "github.com/vandeefeng/zenfeed/pkg/util/time"
 )
 
 // --- Interface code block ---

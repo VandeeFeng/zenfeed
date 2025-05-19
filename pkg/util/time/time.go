@@ -25,7 +25,7 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 
-	runtimeutil "github.com/glidea/zenfeed/pkg/util/runtime"
+	runtimeutil "github.com/vandeefeng/zenfeed/pkg/util/runtime"
 )
 
 const (

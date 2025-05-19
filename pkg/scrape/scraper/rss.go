@@ -24,8 +24,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/glidea/zenfeed/pkg/model"
-	textconvert "github.com/glidea/zenfeed/pkg/util/text_convert"
+	"github.com/vandeefeng/zenfeed/pkg/model"
+	textconvert "github.com/vandeefeng/zenfeed/pkg/util/text_convert"
 )
 
 // --- Interface code block ---

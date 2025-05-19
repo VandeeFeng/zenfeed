@@ -23,9 +23,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/glidea/zenfeed/pkg/model"
-	"github.com/glidea/zenfeed/pkg/notify/route"
-	runtimeutil "github.com/glidea/zenfeed/pkg/util/runtime"
+	"github.com/vandeefeng/zenfeed/pkg/model"
+	"github.com/vandeefeng/zenfeed/pkg/notify/route"
+	runtimeutil "github.com/vandeefeng/zenfeed/pkg/util/runtime"
 )
 
 type WebhookReceiver struct {

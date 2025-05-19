@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/glidea/zenfeed/pkg/model"
+	"github.com/vandeefeng/zenfeed/pkg/model"
 )
 
 // --- Benchmark Setup ---

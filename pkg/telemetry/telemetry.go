@@ -20,8 +20,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/glidea/zenfeed/pkg/telemetry/log"
-	"github.com/glidea/zenfeed/pkg/telemetry/metric"
+	"github.com/vandeefeng/zenfeed/pkg/telemetry/log"
+	"github.com/vandeefeng/zenfeed/pkg/telemetry/metric"
 )
 
 type Labels []any

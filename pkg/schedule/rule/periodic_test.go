@@ -8,11 +8,11 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/glidea/zenfeed/pkg/component"
-	"github.com/glidea/zenfeed/pkg/model"
-	"github.com/glidea/zenfeed/pkg/storage/feed"
-	"github.com/glidea/zenfeed/pkg/storage/feed/block"
-	"github.com/glidea/zenfeed/pkg/test"
+	"github.com/vandeefeng/zenfeed/pkg/component"
+	"github.com/vandeefeng/zenfeed/pkg/model"
+	"github.com/vandeefeng/zenfeed/pkg/storage/feed"
+	"github.com/vandeefeng/zenfeed/pkg/storage/feed/block"
+	"github.com/vandeefeng/zenfeed/pkg/test"
 )
 
 func TestPeriodicExecute(t *testing.T) {
