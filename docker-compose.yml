@@ -8,6 +8,8 @@ services:
     depends_on:
       - zenfeed
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   zenfeed:
     image: glidea/zenfeed:latest
@@ -34,7 +36,9 @@ services:
     depends_on:
       - rsshub
     restart: unless-stopped
-    
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
   rsshub:
     image: diygod/rsshub:2024-12-14
     ports:
@@ -54,13 +58,15 @@ configs:
       llms:
         - name: general
           default: true
-          provider: siliconflow
-          model: Qwen/Qwen2.5-7B-Instruct
-          api_key: ${API_KEY:-your-api-key}
+          provider: openai
+          model: grok-3-mini-beta
+          endpoint: https://api.x.ai/v1/
+          api_key: ${GENERAL_API_KEY:-your-api-key}
         - name: embed
-          provider: siliconflow
-          embedding_model: Pro/BAAI/bge-m3
-          api_key: ${API_KEY:-your-api-key}
+          provider: openai
+          endpoint: http://host.docker.internal:11434/v1
+          embedding_model: bge-m3:latest
+          api_key: ${EMBED_API_KEY:-your-api-key}
       scrape:
         rsshub_endpoint: http://rsshub:1200
       storage:
@@ -71,8 +77,25 @@ configs:
                   prompt: |
                     {{ .summary_html_snippet }} Respond in ${LANG:-Chinese}
               label: summary_html_snippet
+            - transform:
+                to_text:
+                  prompt: |
+                    {{ .category }}
+              label: category
+            - transform:
+                to_text:
+                  prompt: |
+                    {{ .tags }}
+              label: tags
+            - transform:
+                to_text:
+                  prompt: |
+                    {{ .score }}
+              label: score
           embedding_llm: embed
       notify:
+        route:
+          group_by: ["source", "category", "tags", "score"]
         channels:
           email:
             feed_html_snippet_template: |
