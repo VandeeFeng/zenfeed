@@ -60,16 +60,21 @@ configs:
   zenfeed_config_base:
     content: |
       timezone: ${TZ:-Asia/Shanghai}
+      api:
+        http:
+          bearer_token: ${BEARER_TOKEN:-your-api-token}
       llms:
         - name: general
           default: true
           provider: openai
           model: grok-3-mini-beta
           endpoint: ${GENERAL_API_ENDPOINT:-https://your-api-endpoint}
+          api_key: ${GENERAL_API_KEY:-your-api-key}
         - name: embed
           provider: openai
           endpoint: ${EMBED_API_ENDPOINT:-https://your-api-endpoint}
           embedding_model: bge-m3:latest
+          api_key: ${EMBED_API_KEY:-your-api-key}
       scrape:
         rsshub_endpoint: http://rsshub:1200
       storage:
