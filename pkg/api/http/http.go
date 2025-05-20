@@ -39,6 +39,7 @@ type Server interface {
 
 type Config struct {
 	Address string
+	Auth    AuthConfig
 }
 
 func (c *Config) Validate() error {
@@ -54,7 +55,9 @@ func (c *Config) Validate() error {
 
 func (c *Config) From(app *config.App) *Config {
 	c.Address = app.API.HTTP.Address
-
+	c.Auth = AuthConfig{
+		BearerToken: app.API.HTTP.BearerToken,
+	}
 	return c
 }
 
@@ -89,18 +92,27 @@ func new(instance string, app *config.App, dependencies Dependencies) (Server, e
 
 	router := http.NewServeMux()
 	api := dependencies.API
+
+	// Public endpoints
 	router.Handle("/metrics", metric.Handler())
 	router.Handle("/health", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 	}))
-	router.Handle("/write", rpc.API(api.Write))
-	router.Handle("/query_config", rpc.API(api.QueryAppConfig))
-	router.Handle("/apply_config", rpc.API(api.ApplyAppConfig))
-	router.Handle("/query_config_schema", rpc.API(api.QueryAppConfigSchema))
-	router.Handle("/query_rsshub_categories", rpc.API(api.QueryRSSHubCategories))
-	router.Handle("/query_rsshub_websites", rpc.API(api.QueryRSSHubWebsites))
-	router.Handle("/query_rsshub_routes", rpc.API(api.QueryRSSHubRoutes))
-	router.Handle("/query", rpc.API(api.Query))
+
+	// Protected endpoints
+	protectedRouter := http.NewServeMux()
+	protectedRouter.Handle("/write", rpc.API(api.Write))
+	protectedRouter.Handle("/query_config", rpc.API(api.QueryAppConfig))
+	protectedRouter.Handle("/apply_config", rpc.API(api.ApplyAppConfig))
+	protectedRouter.Handle("/query_config_schema", rpc.API(api.QueryAppConfigSchema))
+	protectedRouter.Handle("/query_rsshub_categories", rpc.API(api.QueryRSSHubCategories))
+	protectedRouter.Handle("/query_rsshub_websites", rpc.API(api.QueryRSSHubWebsites))
+	protectedRouter.Handle("/query_rsshub_routes", rpc.API(api.QueryRSSHubRoutes))
+	protectedRouter.Handle("/query", rpc.API(api.Query))
+
+	// Apply auth middleware to protected endpoints
+	router.Handle("/", authMiddleware(config.Auth, protectedRouter))
+
 	httpServer := &http.Server{Addr: config.Address, Handler: router}
 
 	return &server{

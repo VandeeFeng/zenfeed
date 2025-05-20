@@ -69,10 +69,24 @@ type API interface {
 type Config struct {
 	RSSHubEndpoint string
 	LLM            string
+	RateLimit      struct {
+		Enabled           bool `yaml:"enabled" json:"enabled"`
+		RequestsPerMinute int  `yaml:"requests_per_minute" json:"requests_per_minute"`
+		BurstSize         int  `yaml:"burst_size" json:"burst_size"`
+	} `yaml:"rate_limit" json:"rate_limit"`
 }
 
 func (c *Config) Validate() error {
 	c.RSSHubEndpoint = strings.TrimSuffix(c.RSSHubEndpoint, "/")
+
+	if c.RateLimit.Enabled {
+		if c.RateLimit.RequestsPerMinute <= 0 {
+			c.RateLimit.RequestsPerMinute = 60 // Default to 1 request per second
+		}
+		if c.RateLimit.BurstSize <= 0 {
+			c.RateLimit.BurstSize = 10
+		}
+	}
 
 	return nil
 }
@@ -80,6 +94,7 @@ func (c *Config) Validate() error {
 func (c *Config) From(app *config.App) *Config {
 	c.RSSHubEndpoint = app.Scrape.RSSHubEndpoint
 	c.LLM = app.API.LLM
+	c.RateLimit = app.API.RateLimit
 
 	return c
 }

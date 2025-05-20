@@ -52,12 +52,18 @@ type App struct {
 	} `yaml:"log,omitempty" json:"log,omitempty" desc:"The log config."`
 	API struct {
 		HTTP struct {
-			Address string `yaml:"address,omitempty" json:"address,omitempty" desc:"The address ([host]:port) of the HTTP API. e.g. 0.0.0.0:1300. Default: :1300. It can not be changed after the app is running."`
+			Address     string `yaml:"address,omitempty" json:"address,omitempty" desc:"The address ([host]:port) of the HTTP API. e.g. 0.0.0.0:1300. Default: :1300. It can not be changed after the app is running."`
+			BearerToken string `yaml:"bearer_token,omitempty" json:"bearer_token,omitempty" desc:"The bearer token for API authentication"`
 		} `yaml:"http,omitempty" json:"http,omitempty" desc:"The HTTP API config."`
 		MCP struct {
 			Address string `yaml:"address,omitempty" json:"address,omitempty" desc:"The address ([host]:port) of the MCP API. e.g. 0.0.0.0:1300. Default: :1301. It can not be changed after the app is running."`
 		} `yaml:"mcp,omitempty" json:"mcp,omitempty" desc:"The MCP API config."`
-		LLM string `yaml:"llm,omitempty" json:"llm,omitempty" desc:"The LLM name for summarizing feeds. e.g. my-favorite-gemini-king. Default is the default LLM in llms section."`
+		LLM       string `yaml:"llm,omitempty" json:"llm,omitempty" desc:"The LLM name for summarizing feeds. e.g. my-favorite-gemini-king. Default is the default LLM in llms section."`
+		RateLimit struct {
+			Enabled           bool `yaml:"enabled" json:"enabled"`
+			RequestsPerMinute int  `yaml:"requests_per_minute" json:"requests_per_minute"`
+			BurstSize         int  `yaml:"burst_size" json:"burst_size"`
+		} `yaml:"rate_limit" json:"rate_limit" desc:"Rate limiting configuration for API endpoints"`
 	} `yaml:"api,omitempty" json:"api,omitempty" desc:"The API config."`
 	LLMs     []LLM   `yaml:"llms,omitempty" json:"llms,omitempty" desc:"The LLMs config. It is required, at least one LLM is needed, refered by other config sections."`
 	Scrape   Scrape  `yaml:"scrape,omitempty" json:"scrape,omitempty" desc:"The scrape config."`
@@ -72,15 +78,60 @@ type App struct {
 	} `yaml:"notify,omitempty" json:"notify,omitempty" desc:"The notify config. It will receive the results from the scheduls module, and group them by the notify route config, and send to the notify receivers via the notify channels."`
 }
 
+// ProviderType represents the type of LLM provider
+type ProviderType string
+
 type LLM struct {
-	Name           string  `yaml:"name,omitempty" json:"name,omitempty" desc:"The name (or call it 'id') of the LLM. e.g. my-favorite-gemini-king. It is required when api.llm is set."`
-	Default        bool    `yaml:"default,omitempty" json:"default,omitempty" desc:"Whether this LLM is the default LLM. Only one LLM can be the default."`
-	Provider       string  `yaml:"provider,omitempty" json:"provider,omitempty" desc:"The provider of the LLM, one of openai, openrouter, deepseek, gemini, volc, siliconflow. e.g. openai"`
-	Endpoint       string  `yaml:"endpoint,omitempty" json:"endpoint,omitempty" desc:"The custom endpoint of the LLM. e.g. https://api.openai.com/v1"`
-	APIKey         string  `yaml:"api_key,omitempty" json:"api_key,omitempty" desc:"The API key of the LLM. It is required when api.llm is set."`
-	Model          string  `yaml:"model,omitempty" json:"model,omitempty" desc:"The model of the LLM. e.g. gpt-4o-mini. Can not be empty with embedding_model at same time when api.llm is set."`
-	EmbeddingModel string  `yaml:"embedding_model,omitempty" json:"embedding_model,omitempty" desc:"The embedding model of the LLM. e.g. text-embedding-3-small. Can not be empty with model at same time when api.llm is set. NOTE: Once used, do not modify it directly, instead, add a new LLM configuration."`
-	Temperature    float32 `yaml:"temperature,omitempty" json:"temperature,omitempty" desc:"The temperature (0-2) of the LLM. Default: 0.0"`
+	Name           string       `yaml:"name,omitempty" json:"name,omitempty" desc:"The name (or 'id') of the LLM. e.g. my-favorite-gemini-king"`
+	Default        bool         `yaml:"default,omitempty" json:"default,omitempty" desc:"Whether this LLM is the default LLM. Only one LLM can be the default."`
+	Provider       ProviderType `yaml:"provider,omitempty" json:"provider,omitempty" desc:"The provider of the LLM, one of openai, openrouter, deepseek, gemini, volc, siliconflow. e.g. openai"`
+	Endpoint       string       `yaml:"endpoint,omitempty" json:"endpoint,omitempty" desc:"The custom endpoint of the LLM. e.g. https://api.openai.com/v1"`
+	APIKey         string       `yaml:"api_key,omitempty" json:"api_key,omitempty" desc:"The API key of the LLM. Will be encrypted at rest."`
+	Model          string       `yaml:"model,omitempty" json:"model,omitempty" desc:"The model of the LLM. e.g. gpt-4o-mini"`
+	EmbeddingModel string       `yaml:"embedding_model,omitempty" json:"embedding_model,omitempty" desc:"The embedding model of the LLM. e.g. text-embedding-3-small"`
+	Temperature    float32      `yaml:"temperature,omitempty" json:"temperature,omitempty" desc:"The temperature (0-2) of the LLM. Default: 0.0"`
+
+	encryptedAPIKey []byte `yaml:"-" json:"-"`
+}
+
+func (l *LLM) EncryptAPIKey(key []byte) error {
+	if l.APIKey == "" {
+		return nil
+	}
+
+	encrypted, err := encrypt([]byte(l.APIKey), key)
+	if err != nil {
+		return err
+	}
+
+	l.encryptedAPIKey = encrypted
+	l.APIKey = "" // Clear plaintext
+	return nil
+}
+
+func (l *LLM) DecryptAPIKey(key []byte) error {
+	if len(l.encryptedAPIKey) == 0 {
+		return nil
+	}
+
+	decrypted, err := decrypt(l.encryptedAPIKey, key)
+	if err != nil {
+		return err
+	}
+
+	l.APIKey = string(decrypted)
+	return nil
+}
+
+// Encryption helpers
+func encrypt(data []byte, key []byte) ([]byte, error) {
+	// TODO: Implement AES encryption
+	return data, nil
+}
+
+func decrypt(data []byte, key []byte) ([]byte, error) {
+	// TODO: Implement AES decryption
+	return data, nil
 }
 
 type Scrape struct {
