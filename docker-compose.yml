@@ -64,7 +64,7 @@ configs:
       api:
         http:
           bearer_token: ${BEARER_TOKEN:-your-api-token}
-          dev_mode: ${DEV_MODE:-false}
+          dev_mode: !!bool ${DEV_MODE:-false}
       llms:
         - name: general
           default: true
