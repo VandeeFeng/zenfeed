@@ -29,6 +29,7 @@ services:
       - BEARER_TOKEN=${BEARER_TOKEN:-your-api-token}
       - GENERAL_API_KEY=${GENERAL_API_KEY:-your-api-key}
       - EMBED_API_KEY=${EMBED_API_KEY:-your-api-key}
+      - DEV_MODE=${DEV_MODE:-false}
     configs:
       - source: zenfeed_config_base
         target: /app/config.base.yaml
@@ -63,6 +64,7 @@ configs:
       api:
         http:
           bearer_token: ${BEARER_TOKEN:-your-api-token}
+          dev_mode: ${DEV_MODE:-false}
       llms:
         - name: general
           default: true

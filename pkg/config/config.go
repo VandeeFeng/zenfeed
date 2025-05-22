@@ -54,6 +54,7 @@ type App struct {
 		HTTP struct {
 			Address     string `yaml:"address,omitempty" json:"address,omitempty" desc:"The address ([host]:port) of the HTTP API. e.g. 0.0.0.0:1300. Default: :1300. It can not be changed after the app is running."`
 			BearerToken string `yaml:"bearer_token,omitempty" json:"bearer_token,omitempty" desc:"The bearer token for API authentication"`
+			DevMode     bool   `yaml:"dev_mode,omitempty" json:"dev_mode,omitempty" desc:"Enable development mode to bypass authentication"`
 		} `yaml:"http,omitempty" json:"http,omitempty" desc:"The HTTP API config."`
 		MCP struct {
 			Address string `yaml:"address,omitempty" json:"address,omitempty" desc:"The address ([host]:port) of the MCP API. e.g. 0.0.0.0:1300. Default: :1301. It can not be changed after the app is running."`

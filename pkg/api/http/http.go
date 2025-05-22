@@ -57,6 +57,7 @@ func (c *Config) From(app *config.App) *Config {
 	c.Address = app.API.HTTP.Address
 	c.Auth = AuthConfig{
 		BearerToken: app.API.HTTP.BearerToken,
+		DevMode:     app.API.HTTP.DevMode,
 	}
 	return c
 }

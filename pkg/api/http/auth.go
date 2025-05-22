@@ -7,12 +7,19 @@ import (
 
 type AuthConfig struct {
 	BearerToken string
+	DevMode     bool
 }
 
 func authMiddleware(config AuthConfig, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Skip auth for health check and metrics
 		if r.URL.Path == "/health" || r.URL.Path == "/metrics" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Skip auth in development mode
+		if config.DevMode {
 			next.ServeHTTP(w, r)
 			return
 		}
