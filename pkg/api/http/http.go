@@ -100,6 +100,18 @@ func new(instance string, app *config.App, dependencies Dependencies) (Server, e
 		w.WriteHeader(200)
 	}))
 
+	// Create server instance
+	httpServer := &http.Server{Addr: config.Address}
+	s := &server{
+		Base: component.New(&component.BaseConfig[Config, Dependencies]{
+			Name:         "HTTPServer",
+			Instance:     instance,
+			Config:       config,
+			Dependencies: dependencies,
+		}),
+		http: httpServer,
+	}
+
 	// Protected endpoints
 	protectedRouter := http.NewServeMux()
 	protectedRouter.Handle("/write", rpc.API(api.Write))
@@ -111,20 +123,16 @@ func new(instance string, app *config.App, dependencies Dependencies) (Server, e
 	protectedRouter.Handle("/query_rsshub_routes", rpc.API(api.QueryRSSHubRoutes))
 	protectedRouter.Handle("/query", rpc.API(api.Query))
 
+	// Feed status endpoints
+	protectedRouter.HandleFunc("/feed/", s.handleFeedStatus)
+
 	// Apply auth middleware to protected endpoints
 	router.Handle("/", authMiddleware(config.Auth, protectedRouter))
 
-	httpServer := &http.Server{Addr: config.Address, Handler: router}
+	// Set the final handler
+	httpServer.Handler = router
 
-	return &server{
-		Base: component.New(&component.BaseConfig[Config, Dependencies]{
-			Name:         "HTTPServer",
-			Instance:     instance,
-			Config:       config,
-			Dependencies: dependencies,
-		}),
-		http: httpServer,
-	}, nil
+	return s, nil
 }
 
 // --- Implementation code block ---
@@ -174,4 +182,16 @@ type mockServer struct {
 
 func (m *mockServer) Reload(app *config.App) error {
 	return m.Called(app).Error(0)
+}
+
+// handleFeedStatus handles both GET and POST requests for feed status
+func (s *server) handleFeedStatus(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		s.handleGetFeedStatus(w, r)
+	case http.MethodPost:
+		s.handleUpdateFeedStatus(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
 }

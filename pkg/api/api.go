@@ -34,6 +34,7 @@ import (
 	"github.com/vandeefeng/zenfeed/pkg/model"
 	"github.com/vandeefeng/zenfeed/pkg/storage/feed"
 	"github.com/vandeefeng/zenfeed/pkg/storage/feed/block"
+	"github.com/vandeefeng/zenfeed/pkg/storage/kv"
 	telemetry "github.com/vandeefeng/zenfeed/pkg/telemetry"
 	telemetrymodel "github.com/vandeefeng/zenfeed/pkg/telemetry/model"
 	jsonschema "github.com/vandeefeng/zenfeed/pkg/util/json_schema"
@@ -64,6 +65,9 @@ type API interface {
 
 	Write(ctx context.Context, req *WriteRequest) (resp *WriteResponse, err error) // WARN: beta!!!
 	Query(ctx context.Context, req *QueryRequest) (resp *QueryResponse, err error)
+
+	// KVStorage returns the KV storage interface
+	KVStorage() kv.Storage
 }
 
 type Config struct {
@@ -103,6 +107,7 @@ type Dependencies struct {
 	ConfigManager config.Manager
 	FeedStorage   feed.Storage
 	LLMFactory    llm.Factory
+	KVStorage     kv.Storage
 }
 
 type QueryAppConfigSchemaRequest struct{}
@@ -516,6 +521,10 @@ func (a *api) Query(ctx context.Context, req *QueryRequest) (resp *QueryResponse
 	}, nil
 }
 
+func (a *api) KVStorage() kv.Storage {
+	return a.Dependencies().KVStorage
+}
+
 type mockAPI struct {
 	component.Mock
 }
@@ -588,4 +597,8 @@ func (m *mockAPI) Write(ctx context.Context, req *WriteRequest) (resp *WriteResp
 	args := m.Called(ctx, req)
 
 	return args.Get(0).(*WriteResponse), args.Error(1)
+}
+
+func (m *mockAPI) KVStorage() kv.Storage {
+	return nil
 }
