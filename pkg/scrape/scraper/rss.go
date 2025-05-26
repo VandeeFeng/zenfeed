@@ -27,6 +27,7 @@ import (
 	"github.com/vandeefeng/zenfeed/pkg/model"
 	"github.com/vandeefeng/zenfeed/pkg/telemetry/log"
 	textconvert "github.com/vandeefeng/zenfeed/pkg/util/text_convert"
+	timeutil "github.com/vandeefeng/zenfeed/pkg/util/time"
 )
 
 // --- Interface code block ---
@@ -52,7 +53,7 @@ func (c *ScrapeSourceRSS) Validate() error {
 }
 
 // --- Factory code block ---
-func newRSSReader(config *ScrapeSourceRSS) (reader, error) {
+func newRSSReader(config *ScrapeSourceRSS, past time.Duration) (reader, error) {
 	if err := config.Validate(); err != nil {
 		return nil, errors.Wrapf(err, "invalid RSS config")
 	}
@@ -69,6 +70,7 @@ func newRSSReader(config *ScrapeSourceRSS) (reader, error) {
 			base: gofeed.NewParser(),
 		},
 		crawler: crawler,
+		past:    past,
 	}, nil
 }
 
@@ -78,6 +80,7 @@ type rssReader struct {
 	config  *ScrapeSourceRSS
 	client  client
 	crawler *Crawl4AIClient
+	past    time.Duration // Add past duration for time filtering
 }
 
 func (r *rssReader) Read(ctx context.Context) ([]*model.Feed, error) {
@@ -96,14 +99,21 @@ func (r *rssReader) Read(ctx context.Context) ([]*model.Feed, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "converting feed item")
 		}
-
-		feeds = append(feeds, item)
+		if item != nil { // Only append non-nil items (those within time range)
+			feeds = append(feeds, item)
+		}
 	}
 
 	return feeds, nil
 }
 
 func (r *rssReader) toResultFeed(ctx context.Context, now time.Time, feedFeed *gofeed.Item) (*model.Feed, error) {
+	// First check publication time
+	pubTime := r.parseTime(feedFeed)
+	if !timeutil.InRange(pubTime, now.Add(-r.past), now) {
+		return nil, nil // Skip if not in time range
+	}
+
 	var content string
 
 	// Try to get full content if:
@@ -156,7 +166,7 @@ func (r *rssReader) toResultFeed(ctx context.Context, now time.Time, feedFeed *g
 			{Key: model.LabelType, Value: "rss"},
 			{Key: model.LabelTitle, Value: feedFeed.Title},
 			{Key: model.LabelLink, Value: feedFeed.Link},
-			{Key: model.LabelPubTime, Value: r.parseTime(feedFeed).Format(time.RFC3339)},
+			{Key: model.LabelPubTime, Value: pubTime.Format(time.RFC3339)},
 			{Key: model.LabelContent, Value: content},
 		},
 		Time: now,

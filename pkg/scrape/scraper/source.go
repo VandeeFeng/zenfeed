@@ -34,12 +34,12 @@ type reader interface {
 }
 
 // --- Factory code block ---
-func newReader(config *Config) (reader, error) {
+func NewReader(config *Config) (reader, error) {
 	if config.RSS != nil {
-		return newRSSReader(config.RSS)
+		return newRSSReader(config.RSS, config.Past)
 	}
 
-	return nil, errors.New("source not supported")
+	return nil, errors.New("no source config")
 }
 
 // --- Implementation code block ---
