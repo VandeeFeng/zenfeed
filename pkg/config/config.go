@@ -136,10 +136,11 @@ func decrypt(data []byte, key []byte) ([]byte, error) {
 }
 
 type Scrape struct {
-	Past           timeutil.Duration `yaml:"past,omitempty" json:"past,omitempty" desc:"The lookback time window for scraping feeds. e.g. 1h means only scrape feeds in the past 1 hour. Default: 3d"`
-	Interval       timeutil.Duration `yaml:"interval,omitempty" json:"interval,omitempty" desc:"How often to scrape each source, it is a global interval. e.g. 1h. Default: 1h"`
-	RSSHubEndpoint string            `yaml:"rsshub_endpoint,omitempty" json:"rsshub_endpoint,omitempty" desc:"The endpoint of the RSSHub. You can deploy your own RSSHub server or use the public one (https://docs.rsshub.app/guide/instances). e.g. https://rsshub.app. It is required when sources[].rss.rsshub_route_path is set."`
-	Sources        []ScrapeSource    `yaml:"sources,omitempty" json:"sources,omitempty" desc:"The sources for scraping feeds."`
+	Past            timeutil.Duration `yaml:"past,omitempty" json:"past,omitempty" desc:"The lookback time window for scraping feeds. e.g. 1h means only scrape feeds in the past 1 hour. Default: 3d"`
+	Interval        timeutil.Duration `yaml:"interval,omitempty" json:"interval,omitempty" desc:"How often to scrape each source, it is a global interval. e.g. 1h. Default: 1h"`
+	RSSHubEndpoint  string            `yaml:"rsshub_endpoint,omitempty" json:"rsshub_endpoint,omitempty" desc:"The endpoint of the RSSHub. You can deploy your own RSSHub server or use the public one (https://docs.rsshub.app/guide/instances). e.g. https://rsshub.app. It is required when sources[].rss.rsshub_route_path is set."`
+	CrawlerEndpoint string            `yaml:"crawler_endpoint,omitempty" json:"crawler_endpoint,omitempty" desc:"The endpoint of the Crawl4AI service for fetching full content. e.g. http://crawl4ai:11235"`
+	Sources         []ScrapeSource    `yaml:"sources,omitempty" json:"sources,omitempty" desc:"The sources for scraping feeds."`
 }
 
 type Storage struct {
