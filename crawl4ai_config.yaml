@@ -1,0 +1,58 @@
+# Application Configuration
+app:
+  title: "Crawl4AI API"
+  version: "1.0.0"
+  host: "0.0.0.0"
+  port: 11235
+  timeout_keep_alive: 300
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  output: "stdout"
+  file_options:
+    max_size: 100
+    max_age: 7
+    max_backups: 5
+  fields:
+    service: "crawl4ai"
+    environment: "production"
+
+# Browser Configuration
+browser:
+  headless: true
+  exclude_external_links: true
+  remove_overlay_elements: true
+  viewport:
+    width: 1920
+    height: 1080
+  timeout: 30000  # 30 seconds
+  wait_until: "networkidle0"
+
+# Resource Management
+resources:
+  memory_threshold_percent: 80
+  max_concurrent_browsers: 5
+  max_concurrent_pages: 10
+
+# Cache Configuration
+cache:
+  mode: "bypass"  # Always get fresh content
+
+# Observability
+observability:
+  prometheus:
+    enabled: true
+    endpoint: "/metrics"
+  health_check:
+    endpoint: "/health"
+
+# Security
+security:
+  trusted_hosts:
+    - "localhost"
+    - "127.0.0.1"
+    - "zenfeed"  # Docker service name
+  rate_limit:
+    requests_per_minute: 60 

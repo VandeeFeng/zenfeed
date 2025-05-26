@@ -23,8 +23,11 @@ import (
 	"github.com/mmcdole/gofeed"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
+	"k8s.io/utils/ptr"
 
 	"github.com/vandeefeng/zenfeed/pkg/model"
+	"github.com/vandeefeng/zenfeed/pkg/telemetry/log"
+	"github.com/vandeefeng/zenfeed/pkg/util/retry"
 	textconvert "github.com/vandeefeng/zenfeed/pkg/util/text_convert"
 )
 
@@ -33,6 +36,7 @@ type ScrapeSourceRSS struct {
 	URL             string
 	RSSHubEndpoint  string
 	RSSHubRoutePath string
+	CrawlerEndpoint string // Crawl4AI endpoint for fetching full content
 }
 
 func (c *ScrapeSourceRSS) Validate() error {
@@ -55,20 +59,27 @@ func newRSSReader(config *ScrapeSourceRSS) (reader, error) {
 		return nil, errors.Wrapf(err, "invalid RSS config")
 	}
 
+	var crawler *Crawl4AIClient
+	if config.CrawlerEndpoint != "" {
+		crawler = NewCrawl4AIClient(config.CrawlerEndpoint)
+	}
+
 	return &rssReader{
 		config: config,
 		client: &gofeedClient{
 			url:  config.URL,
 			base: gofeed.NewParser(),
 		},
+		crawler: crawler,
 	}, nil
 }
 
 // --- Implementation code block ---
 
 type rssReader struct {
-	config *ScrapeSourceRSS
-	client client
+	config  *ScrapeSourceRSS
+	client  client
+	crawler *Crawl4AIClient
 }
 
 func (r *rssReader) Read(ctx context.Context) ([]*model.Feed, error) {
@@ -83,7 +94,7 @@ func (r *rssReader) Read(ctx context.Context) ([]*model.Feed, error) {
 	now := clk.Now()
 	feeds := make([]*model.Feed, 0, len(feed.Items))
 	for _, fi := range feed.Items {
-		item, err := r.toResultFeed(now, fi)
+		item, err := r.toResultFeed(ctx, now, fi)
 		if err != nil {
 			return nil, errors.Wrapf(err, "converting feed item")
 		}
@@ -94,13 +105,64 @@ func (r *rssReader) Read(ctx context.Context) ([]*model.Feed, error) {
 	return feeds, nil
 }
 
-func (r *rssReader) toResultFeed(now time.Time, feedFeed *gofeed.Item) (*model.Feed, error) {
-	content := r.combineContent(feedFeed.Content, feedFeed.Description)
+func (r *rssReader) toResultFeed(ctx context.Context, now time.Time, feedFeed *gofeed.Item) (*model.Feed, error) {
+	var content string
+	var err error
 
-	// Ensure the content is markdown.
-	mdContent, err := textconvert.HTMLToMarkdown([]byte(content))
-	if err != nil {
-		return nil, errors.Wrapf(err, "converting content to markdown")
+	// Try to get full content if:
+	// 1. Link exists and crawler is configured
+	// 2. And either:
+	//    - Content is empty
+	//    - Description is empty
+	//    - Content length is suspiciously short (likely just a summary)
+	if r.crawler != nil && feedFeed.Link != "" {
+		shouldCrawl := feedFeed.Content == "" ||
+			feedFeed.Description == "" ||
+			(len(feedFeed.Content) < 500 && !strings.Contains(feedFeed.Content, "</table>")) // Skip crawling if content is a data table
+
+		if shouldCrawl {
+			// Use retry with backoff for crawler requests
+			err = retry.Backoff(ctx, func() error {
+				var fetchErr error
+				fullContent, fetchErr := r.crawler.GetFullContent(ctx, feedFeed.Link)
+				if fetchErr != nil {
+					log.Info(ctx, "Failed to get full content, will retry", "error", fetchErr)
+					return fetchErr
+				}
+				content = fullContent
+				return nil
+			}, &retry.Options{
+				MinInterval: time.Second,
+				MaxInterval: 5 * time.Second,
+				MaxAttempts: ptr.To(3),
+			})
+
+			if err != nil {
+				// After all retries failed, fallback to RSS content
+				log.Info(ctx, "All attempts to get full content failed, falling back to RSS content",
+					"error", err,
+					"content_length", len(feedFeed.Content),
+					"description_length", len(feedFeed.Description))
+				content = r.combineContent(feedFeed.Content, feedFeed.Description)
+			}
+		} else {
+			content = r.combineContent(feedFeed.Content, feedFeed.Description)
+		}
+	} else {
+		content = r.combineContent(feedFeed.Content, feedFeed.Description)
+	}
+
+	// If content is from Crawl4AI, it's already in the desired format
+	// For RSS content, convert from HTML to markdown
+	if r.crawler != nil && !strings.Contains(content, feedFeed.Content) && !strings.Contains(content, feedFeed.Description) {
+		// Content is from Crawl4AI, use as is
+	} else {
+		// Content is from RSS, convert from HTML to markdown
+		mdContent, err := textconvert.HTMLToMarkdown([]byte(content))
+		if err != nil {
+			return nil, errors.Wrapf(err, "converting content to markdown")
+		}
+		content = string(mdContent)
 	}
 
 	// Create the feed item.
@@ -110,7 +172,7 @@ func (r *rssReader) toResultFeed(now time.Time, feedFeed *gofeed.Item) (*model.F
 			{Key: model.LabelTitle, Value: feedFeed.Title},
 			{Key: model.LabelLink, Value: feedFeed.Link},
 			{Key: model.LabelPubTime, Value: r.parseTime(feedFeed).Format(time.RFC3339)},
-			{Key: model.LabelContent, Value: string(mdContent)},
+			{Key: model.LabelContent, Value: content},
 		},
 		Time: now,
 	}
