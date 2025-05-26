@@ -23,11 +23,9 @@ import (
 	"github.com/mmcdole/gofeed"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
-	"k8s.io/utils/ptr"
 
 	"github.com/vandeefeng/zenfeed/pkg/model"
 	"github.com/vandeefeng/zenfeed/pkg/telemetry/log"
-	"github.com/vandeefeng/zenfeed/pkg/util/retry"
 	textconvert "github.com/vandeefeng/zenfeed/pkg/util/text_convert"
 )
 
@@ -107,7 +105,6 @@ func (r *rssReader) Read(ctx context.Context) ([]*model.Feed, error) {
 
 func (r *rssReader) toResultFeed(ctx context.Context, now time.Time, feedFeed *gofeed.Item) (*model.Feed, error) {
 	var content string
-	var err error
 
 	// Try to get full content if:
 	// 1. Link exists and crawler is configured
@@ -121,29 +118,17 @@ func (r *rssReader) toResultFeed(ctx context.Context, now time.Time, feedFeed *g
 			(len(feedFeed.Content) < 500 && !strings.Contains(feedFeed.Content, "</table>")) // Skip crawling if content is a data table
 
 		if shouldCrawl {
-			// Use retry with backoff for crawler requests
-			err = retry.Backoff(ctx, func() error {
-				var fetchErr error
-				fullContent, fetchErr := r.crawler.GetFullContent(ctx, feedFeed.Link)
-				if fetchErr != nil {
-					log.Info(ctx, "Failed to get full content, will retry", "error", fetchErr)
-					return fetchErr
-				}
-				content = fullContent
-				return nil
-			}, &retry.Options{
-				MinInterval: time.Second,
-				MaxInterval: 5 * time.Second,
-				MaxAttempts: ptr.To(3),
-			})
-
+			// Try to get full content once, no retry here since outer loop will handle retries
+			fullContent, err := r.crawler.GetFullContent(ctx, feedFeed.Link)
 			if err != nil {
-				// After all retries failed, fallback to RSS content
-				log.Info(ctx, "All attempts to get full content failed, falling back to RSS content",
+				// Log the error but don't fail - fall back to RSS content
+				log.Info(ctx, "Failed to get full content, falling back to RSS content",
 					"error", err,
 					"content_length", len(feedFeed.Content),
 					"description_length", len(feedFeed.Description))
 				content = r.combineContent(feedFeed.Content, feedFeed.Description)
+			} else {
+				content = fullContent
 			}
 		} else {
 			content = r.combineContent(feedFeed.Content, feedFeed.Description)

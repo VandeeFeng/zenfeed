@@ -18,10 +18,12 @@ package scraper
 import (
 	"context"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/benbjohnson/clock"
 	"github.com/pkg/errors"
+	"k8s.io/utils/ptr"
 
 	"github.com/vandeefeng/zenfeed/pkg/component"
 	"github.com/vandeefeng/zenfeed/pkg/model"
@@ -158,6 +160,12 @@ func (s *scraper) scrapeUntilSuccess(ctx context.Context) {
 		// Read feeds from source.
 		feeds, err := s.source.Read(opCtx)
 		if err != nil {
+			// If it's a context timeout or cancellation, don't retry
+			if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+				log.Info(opCtx, "Scraping stopped due to context cancellation or timeout")
+				return nil
+			}
+			// For RSS feed errors, we should retry
 			return errors.Wrap(err, "reading source feeds")
 		}
 		log.Debug(opCtx, "reading source feeds success", "count", len(feeds))
@@ -171,6 +179,14 @@ func (s *scraper) scrapeUntilSuccess(ctx context.Context) {
 
 		// Save processed feeds.
 		if err := s.Dependencies().FeedStorage.Append(opCtx, processed...); err != nil {
+			// Don't retry on permanent storage errors
+			if strings.Contains(err.Error(), "storage unavailable") ||
+				strings.Contains(err.Error(), "connection refused") ||
+				strings.Contains(err.Error(), "no space left") {
+				log.Error(opCtx, err, "Feed storage is unavailable or full, skipping retry")
+				return nil
+			}
+			// For temporary storage errors, we should retry
 			return errors.Wrap(err, "saving feeds")
 		}
 		log.Debug(opCtx, "appending feeds success")
@@ -179,7 +195,7 @@ func (s *scraper) scrapeUntilSuccess(ctx context.Context) {
 	}, &retry.Options{
 		MinInterval: time.Minute,
 		MaxInterval: 16 * time.Minute,
-		MaxAttempts: retry.InfAttempts,
+		MaxAttempts: ptr.To(5), // Maximum 5 retry attempts
 	})
 }
 
