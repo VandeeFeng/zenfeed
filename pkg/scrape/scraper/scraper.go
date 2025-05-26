@@ -103,7 +103,7 @@ func new(instance string, config *Config, dependencies Dependencies) (Scraper, e
 		return nil, errors.Wrap(err, "invalid scraper config")
 	}
 
-	source, err := createReader(config)
+	source, err := createReader(config, dependencies)
 	if err != nil {
 		return nil, errors.Wrap(err, "creating source")
 	}
@@ -119,9 +119,9 @@ func new(instance string, config *Config, dependencies Dependencies) (Scraper, e
 	}, nil
 }
 
-func createReader(config *Config) (reader, error) {
+func createReader(config *Config, dependencies Dependencies) (reader, error) {
 	if config.RSS != nil {
-		return newRSSReader(config.RSS, config.Past)
+		return newRSSReader(config.RSS, config.Past, dependencies.KVStorage)
 	}
 
 	return nil, errors.New("no source config")

@@ -34,9 +34,10 @@ type reader interface {
 }
 
 // --- Factory code block ---
-func NewReader(config *Config) (reader, error) {
+
+func NewReader(config *Config, dependencies Dependencies) (reader, error) {
 	if config.RSS != nil {
-		return newRSSReader(config.RSS, config.Past)
+		return newRSSReader(config.RSS, config.Past, dependencies.KVStorage)
 	}
 
 	return nil, errors.New("no source config")

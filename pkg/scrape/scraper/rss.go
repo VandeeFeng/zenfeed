@@ -17,6 +17,7 @@ package scraper
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/vandeefeng/zenfeed/pkg/model"
+	"github.com/vandeefeng/zenfeed/pkg/storage/kv"
 	"github.com/vandeefeng/zenfeed/pkg/telemetry/log"
 	textconvert "github.com/vandeefeng/zenfeed/pkg/util/text_convert"
 	timeutil "github.com/vandeefeng/zenfeed/pkg/util/time"
@@ -53,7 +55,7 @@ func (c *ScrapeSourceRSS) Validate() error {
 }
 
 // --- Factory code block ---
-func newRSSReader(config *ScrapeSourceRSS, past time.Duration) (reader, error) {
+func newRSSReader(config *ScrapeSourceRSS, past time.Duration, kvStorage kv.Storage) (reader, error) {
 	if err := config.Validate(); err != nil {
 		return nil, errors.Wrapf(err, "invalid RSS config")
 	}
@@ -71,6 +73,7 @@ func newRSSReader(config *ScrapeSourceRSS, past time.Duration) (reader, error) {
 		},
 		crawler: crawler,
 		past:    past,
+		kv:      kvStorage,
 	}, nil
 }
 
@@ -81,6 +84,7 @@ type rssReader struct {
 	client  client
 	crawler *Crawl4AIClient
 	past    time.Duration // Add past duration for time filtering
+	kv      kv.Storage    // Add KV storage for read status check
 }
 
 func (r *rssReader) Read(ctx context.Context) ([]*model.Feed, error) {
@@ -125,9 +129,20 @@ func (r *rssReader) toResultFeed(ctx context.Context, now time.Time, feedFeed *g
 	if r.crawler != nil && feedFeed.Link != "" {
 		shouldCrawl := feedFeed.Content == "" ||
 			feedFeed.Description == "" ||
-			(len(feedFeed.Content) < 500 && !strings.Contains(feedFeed.Content, "</table>")) // Skip crawling if content is a data table
+			(len(feedFeed.Content) < 100 && !strings.Contains(feedFeed.Content, "</table>")) // Skip crawling if content is a data table
 
 		if shouldCrawl {
+			// Check if feed is already read
+			if r.kv != nil {
+				key := fmt.Sprintf("feed:%s:read_status", feedFeed.Link)
+				status, err := r.kv.Get(ctx, key)
+				if err == nil && status == "read" {
+					// Feed is already read, use RSS content directly
+					content = r.combineContent(feedFeed.Content, feedFeed.Description)
+					goto SKIP_CRAWL
+				}
+			}
+
 			// Try to get full content once, no retry here since outer loop will handle retries
 			fullContent, err := r.crawler.GetFullContent(ctx, feedFeed.Link)
 			if err != nil {
@@ -147,6 +162,7 @@ func (r *rssReader) toResultFeed(ctx context.Context, now time.Time, feedFeed *g
 		content = r.combineContent(feedFeed.Content, feedFeed.Description)
 	}
 
+SKIP_CRAWL:
 	// If content is from Crawl4AI, it's already in the desired format
 	// For RSS content, convert from HTML to markdown
 	if r.crawler != nil && !strings.Contains(content, feedFeed.Content) && !strings.Contains(content, feedFeed.Description) {
