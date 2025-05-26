@@ -30,8 +30,6 @@ import (
 	"github.com/vandeefeng/zenfeed/pkg/test"
 )
 
-const testPast = 24 * time.Hour
-
 func TestNewRSS(t *testing.T) {
 	RegisterTestingT(t)
 
@@ -130,7 +128,7 @@ func TestNewRSS(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.Scenario, func(t *testing.T) {
 			// --- Given & When ---
-			r, err := newRSSReader(tt.GivenDetail.config, testPast, nil)
+			r, err := newRSSReader(tt.GivenDetail.config, nil)
 
 			// --- Then ---
 			if tt.ThenExpected.wantErr {
@@ -249,7 +247,7 @@ func TestReader_Read(t *testing.T) { // Renamed from TestReader_Read
 		t.Run(tt.Scenario, func(t *testing.T) {
 			// --- Given ---
 			// Create the reader instance first
-			r, err := newRSSReader(tt.GivenDetail.config, testPast, nil)
+			r, err := newRSSReader(tt.GivenDetail.config, nil)
 			Expect(err).NotTo(HaveOccurred(), "newRSSReader should succeed for valid test config")
 			rssReader, ok := r.(*rssReader)
 			Expect(ok).To(BeTrue(), "Expected reader to be of type *rssReader")

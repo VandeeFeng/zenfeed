@@ -29,7 +29,6 @@ import (
 	"github.com/vandeefeng/zenfeed/pkg/storage/kv"
 	"github.com/vandeefeng/zenfeed/pkg/telemetry/log"
 	textconvert "github.com/vandeefeng/zenfeed/pkg/util/text_convert"
-	timeutil "github.com/vandeefeng/zenfeed/pkg/util/time"
 )
 
 // --- Interface code block ---
@@ -55,7 +54,7 @@ func (c *ScrapeSourceRSS) Validate() error {
 }
 
 // --- Factory code block ---
-func newRSSReader(config *ScrapeSourceRSS, past time.Duration, kvStorage kv.Storage) (reader, error) {
+func newRSSReader(config *ScrapeSourceRSS, kvStorage kv.Storage) (reader, error) {
 	if err := config.Validate(); err != nil {
 		return nil, errors.Wrapf(err, "invalid RSS config")
 	}
@@ -72,7 +71,6 @@ func newRSSReader(config *ScrapeSourceRSS, past time.Duration, kvStorage kv.Stor
 			base: gofeed.NewParser(),
 		},
 		crawler: crawler,
-		past:    past,
 		kv:      kvStorage,
 	}, nil
 }
@@ -83,8 +81,7 @@ type rssReader struct {
 	config  *ScrapeSourceRSS
 	client  client
 	crawler *Crawl4AIClient
-	past    time.Duration // Add past duration for time filtering
-	kv      kv.Storage    // Add KV storage for read status check
+	kv      kv.Storage // Add KV storage for read status check
 }
 
 func (r *rssReader) Read(ctx context.Context) ([]*model.Feed, error) {
@@ -112,24 +109,16 @@ func (r *rssReader) Read(ctx context.Context) ([]*model.Feed, error) {
 }
 
 func (r *rssReader) toResultFeed(ctx context.Context, now time.Time, feedFeed *gofeed.Item) (*model.Feed, error) {
-	// First check publication time
+	// Get publication time
 	pubTime := r.parseTime(feedFeed)
-	if !timeutil.InRange(pubTime, now.Add(-r.past), now) {
-		return nil, nil // Skip if not in time range
-	}
 
-	var content string
+	// First process the traditional RSS feed content
+	content := r.combineContent(feedFeed.Content, feedFeed.Description)
 
-	// Try to get full content if:
-	// 1. Link exists and crawler is configured
-	// 2. And either:
-	//    - Content is empty
-	//    - Description is empty
-	//    - Content length is suspiciously short (likely just a summary)
+	// Only try to get full content via crawl4ai after traditional RSS processing
 	if r.crawler != nil && feedFeed.Link != "" {
-		shouldCrawl := feedFeed.Content == "" ||
-			feedFeed.Description == "" ||
-			(len(feedFeed.Content) < 100 && !strings.Contains(feedFeed.Content, "</table>")) // Skip crawling if content is a data table
+		shouldCrawl := content == "" || // No content from RSS
+			(len(content) < 100 && !strings.Contains(content, "</table>")) // Content too short and not a data table
 
 		if shouldCrawl {
 			// Check if feed is already read
@@ -138,7 +127,6 @@ func (r *rssReader) toResultFeed(ctx context.Context, now time.Time, feedFeed *g
 				status, err := r.kv.Get(ctx, key)
 				if err == nil && status == "read" {
 					// Feed is already read, use RSS content directly
-					content = r.combineContent(feedFeed.Content, feedFeed.Description)
 					goto SKIP_CRAWL
 				}
 			}
@@ -149,17 +137,11 @@ func (r *rssReader) toResultFeed(ctx context.Context, now time.Time, feedFeed *g
 				// Log the error but don't fail - fall back to RSS content
 				log.Info(ctx, "Failed to get full content, falling back to RSS content",
 					"error", err,
-					"content_length", len(feedFeed.Content),
-					"description_length", len(feedFeed.Description))
-				content = r.combineContent(feedFeed.Content, feedFeed.Description)
-			} else {
+					"content_length", len(content))
+			} else if fullContent != "" {
 				content = fullContent
 			}
-		} else {
-			content = r.combineContent(feedFeed.Content, feedFeed.Description)
 		}
-	} else {
-		content = r.combineContent(feedFeed.Content, feedFeed.Description)
 	}
 
 SKIP_CRAWL:
