@@ -8,22 +8,29 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
+	"github.com/pkg/errors"
+
+	"github.com/vandeefeng/zenfeed/pkg/storage/kv"
 	"github.com/vandeefeng/zenfeed/pkg/telemetry/log"
+	textconvert "github.com/vandeefeng/zenfeed/pkg/util/text_convert"
+	timeutil "github.com/vandeefeng/zenfeed/pkg/util/time"
 )
+
+// --- Types ---
+
+// Crawl4AIHandler handles the crawl4ai related operations
+type Crawl4AIHandler struct {
+	client *Crawl4AIClient
+	kv     kv.Storage
+	past   time.Duration
+}
 
 // Crawl4AIClient handles communication with Crawl4AI service
 type Crawl4AIClient struct {
 	endpoint string
 	client   *http.Client
-}
-
-// NewCrawl4AIClient creates a new Crawl4AI client
-func NewCrawl4AIClient(endpoint string) *Crawl4AIClient {
-	return &Crawl4AIClient{
-		endpoint: endpoint,
-		client:   &http.Client{},
-	}
 }
 
 type crawlRequest struct {
@@ -44,6 +51,86 @@ type crawlResponse struct {
 		} `json:"markdown"`
 	} `json:"results"`
 }
+
+// --- Handler Methods ---
+
+// NewCrawl4AIHandler creates a new Crawl4AIHandler
+func NewCrawl4AIHandler(endpoint string, kvStorage kv.Storage, past time.Duration) *Crawl4AIHandler {
+	var client *Crawl4AIClient
+	if endpoint != "" {
+		client = &Crawl4AIClient{
+			endpoint: endpoint,
+			client:   &http.Client{},
+		}
+	}
+
+	return &Crawl4AIHandler{
+		client: client,
+		kv:     kvStorage,
+		past:   past,
+	}
+}
+
+// ShouldCrawl checks if the content needs to be crawled based on its characteristics
+func (h *Crawl4AIHandler) ShouldCrawl(content string) bool {
+	return content == "" || // No content from RSS
+		(len(content) < 100 && !strings.Contains(content, "</table>")) // Content too short and not a data table
+}
+
+// isInTimeRange checks if the feed is within the configured time range
+func (h *Crawl4AIHandler) isInTimeRange(pubTime, now time.Time) bool {
+	return timeutil.InRange(pubTime, now.Add(-h.past), now)
+}
+
+// isAlreadyRead checks if the feed has already been read
+func (h *Crawl4AIHandler) isAlreadyRead(ctx context.Context, url string) bool {
+	if h.kv == nil {
+		return false
+	}
+
+	key := fmt.Sprintf("feed:%s:read_status", url)
+	status, err := h.kv.Get(ctx, key)
+	return err == nil && status == "read"
+}
+
+// canCrawl checks if crawling is possible and necessary
+func (h *Crawl4AIHandler) canCrawl(ctx context.Context, url string, pubTime, now time.Time) bool {
+	return h.client != nil &&
+		url != "" &&
+		h.isInTimeRange(pubTime, now) &&
+		!h.isAlreadyRead(ctx, url)
+}
+
+// GetFullContent tries to get the full content for a URL if it meets all criteria
+func (h *Crawl4AIHandler) GetFullContent(ctx context.Context, url string, pubTime time.Time, now time.Time) (string, error) {
+	if !h.canCrawl(ctx, url, pubTime, now) {
+		return "", nil
+	}
+
+	fullContent, err := h.client.GetFullContent(ctx, url)
+	if err != nil {
+		return "", errors.Wrap(err, "getting full content")
+	}
+
+	return fullContent, nil
+}
+
+// FormatContent formats the content based on its source and format
+func (h *Crawl4AIHandler) FormatContent(content string, originalContent string, originalDesc string) (string, error) {
+	// If content is from Crawl4AI (doesn't contain original RSS content), use as is
+	if !strings.Contains(content, originalContent) && !strings.Contains(content, originalDesc) {
+		return content, nil
+	}
+
+	// Content is from RSS, convert from HTML to markdown
+	mdContent, err := textconvert.HTMLToMarkdown([]byte(content))
+	if err != nil {
+		return "", errors.Wrap(err, "converting content to markdown")
+	}
+	return string(mdContent), nil
+}
+
+// --- Client Methods ---
 
 // GetFullContent fetches the full content of a webpage using Crawl4AI
 func (c *Crawl4AIClient) GetFullContent(ctx context.Context, url string) (string, error) {

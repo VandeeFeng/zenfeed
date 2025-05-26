@@ -17,7 +17,6 @@ package scraper
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -29,7 +28,6 @@ import (
 	"github.com/vandeefeng/zenfeed/pkg/storage/kv"
 	"github.com/vandeefeng/zenfeed/pkg/telemetry/log"
 	textconvert "github.com/vandeefeng/zenfeed/pkg/util/text_convert"
-	timeutil "github.com/vandeefeng/zenfeed/pkg/util/time"
 )
 
 // --- Interface code block ---
@@ -60,20 +58,14 @@ func newRSSReader(config *ScrapeSourceRSS, past time.Duration, kvStorage kv.Stor
 		return nil, errors.Wrapf(err, "invalid RSS config")
 	}
 
-	var crawler *Crawl4AIClient
-	if config.CrawlerEndpoint != "" {
-		crawler = NewCrawl4AIClient(config.CrawlerEndpoint)
-	}
-
 	return &rssReader{
 		config: config,
 		client: &gofeedClient{
 			url:  config.URL,
 			base: gofeed.NewParser(),
 		},
-		crawler: crawler,
+		crawler: NewCrawl4AIHandler(config.CrawlerEndpoint, kvStorage, past),
 		kv:      kvStorage,
-		past:    past,
 	}, nil
 }
 
@@ -82,9 +74,8 @@ func newRSSReader(config *ScrapeSourceRSS, past time.Duration, kvStorage kv.Stor
 type rssReader struct {
 	config  *ScrapeSourceRSS
 	client  client
-	crawler *Crawl4AIClient
-	kv      kv.Storage    // Add KV storage for read status check
-	past    time.Duration // Add past duration for time filtering
+	crawler *Crawl4AIHandler
+	kv      kv.Storage // Add KV storage for read status check
 }
 
 func (r *rssReader) Read(ctx context.Context) ([]*model.Feed, error) {
@@ -118,43 +109,28 @@ func (r *rssReader) toResultFeed(ctx context.Context, now time.Time, feedFeed *g
 	// First process the traditional RSS feed content
 	content := r.combineContent(feedFeed.Content, feedFeed.Description)
 
-	// Only try to get full content via crawl4ai after traditional RSS processing
-	// and only for feeds within the time range
-	if r.crawler != nil && feedFeed.Link != "" && timeutil.InRange(pubTime, now.Add(-r.past), now) {
-		shouldCrawl := content == "" || // No content from RSS
-			(len(content) < 100 && !strings.Contains(content, "</table>")) // Content too short and not a data table
-
-		if shouldCrawl {
-			// Check if feed is already read
-			if r.kv != nil {
-				key := fmt.Sprintf("feed:%s:read_status", feedFeed.Link)
-				status, err := r.kv.Get(ctx, key)
-				if err == nil && status == "read" {
-					// Feed is already read, use RSS content directly
-					goto SKIP_CRAWL
-				}
-			}
-
-			// Try to get full content once, no retry here since outer loop will handle retries
-			fullContent, err := r.crawler.GetFullContent(ctx, feedFeed.Link)
-			if err != nil {
-				// Log the error but don't fail - fall back to RSS content
-				log.Info(ctx, "Failed to get full content, falling back to RSS content",
-					"error", err,
-					"content_length", len(content))
-			} else if fullContent != "" {
-				content = fullContent
-			}
+	// Try to get full content if needed
+	if r.crawler != nil && r.crawler.ShouldCrawl(content) {
+		fullContent, err := r.crawler.GetFullContent(ctx, feedFeed.Link, pubTime, now)
+		if err != nil {
+			// Log the error but don't fail - fall back to RSS content
+			log.Info(ctx, "Failed to get full content, falling back to RSS content",
+				"error", err,
+				"content_length", len(content))
+		} else if fullContent != "" {
+			content = fullContent
 		}
 	}
 
-SKIP_CRAWL:
-	// If content is from Crawl4AI, it's already in the desired format
-	// For RSS content, convert from HTML to markdown
-	if r.crawler != nil && !strings.Contains(content, feedFeed.Content) && !strings.Contains(content, feedFeed.Description) {
-		// Content is from Crawl4AI, use as is
+	// Format content based on its source
+	if r.crawler != nil {
+		formattedContent, err := r.crawler.FormatContent(content, feedFeed.Content, feedFeed.Description)
+		if err != nil {
+			return nil, errors.Wrapf(err, "formatting content")
+		}
+		content = formattedContent
 	} else {
-		// Content is from RSS, convert from HTML to markdown
+		// If no crawler, always convert to markdown
 		mdContent, err := textconvert.HTMLToMarkdown([]byte(content))
 		if err != nil {
 			return nil, errors.Wrapf(err, "converting content to markdown")
