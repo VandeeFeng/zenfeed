@@ -37,7 +37,7 @@ type reader interface {
 
 func NewReader(config *Config, dependencies Dependencies) (reader, error) {
 	if config.RSS != nil {
-		return newRSSReader(config.RSS, dependencies.KVStorage)
+		return newRSSReader(config.RSS, config.Past, dependencies.KVStorage)
 	}
 
 	return nil, errors.New("no source config")

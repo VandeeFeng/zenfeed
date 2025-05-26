@@ -29,6 +29,7 @@ import (
 	"github.com/vandeefeng/zenfeed/pkg/storage/kv"
 	"github.com/vandeefeng/zenfeed/pkg/telemetry/log"
 	textconvert "github.com/vandeefeng/zenfeed/pkg/util/text_convert"
+	timeutil "github.com/vandeefeng/zenfeed/pkg/util/time"
 )
 
 // --- Interface code block ---
@@ -54,7 +55,7 @@ func (c *ScrapeSourceRSS) Validate() error {
 }
 
 // --- Factory code block ---
-func newRSSReader(config *ScrapeSourceRSS, kvStorage kv.Storage) (reader, error) {
+func newRSSReader(config *ScrapeSourceRSS, past time.Duration, kvStorage kv.Storage) (reader, error) {
 	if err := config.Validate(); err != nil {
 		return nil, errors.Wrapf(err, "invalid RSS config")
 	}
@@ -72,6 +73,7 @@ func newRSSReader(config *ScrapeSourceRSS, kvStorage kv.Storage) (reader, error)
 		},
 		crawler: crawler,
 		kv:      kvStorage,
+		past:    past,
 	}, nil
 }
 
@@ -81,7 +83,8 @@ type rssReader struct {
 	config  *ScrapeSourceRSS
 	client  client
 	crawler *Crawl4AIClient
-	kv      kv.Storage // Add KV storage for read status check
+	kv      kv.Storage    // Add KV storage for read status check
+	past    time.Duration // Add past duration for time filtering
 }
 
 func (r *rssReader) Read(ctx context.Context) ([]*model.Feed, error) {
@@ -116,7 +119,8 @@ func (r *rssReader) toResultFeed(ctx context.Context, now time.Time, feedFeed *g
 	content := r.combineContent(feedFeed.Content, feedFeed.Description)
 
 	// Only try to get full content via crawl4ai after traditional RSS processing
-	if r.crawler != nil && feedFeed.Link != "" {
+	// and only for feeds within the time range
+	if r.crawler != nil && feedFeed.Link != "" && timeutil.InRange(pubTime, now.Add(-r.past), now) {
 		shouldCrawl := content == "" || // No content from RSS
 			(len(content) < 100 && !strings.Contains(content, "</table>")) // Content too short and not a data table
 
