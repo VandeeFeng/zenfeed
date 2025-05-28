@@ -17,6 +17,7 @@ package feed
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -27,6 +28,7 @@ import (
 
 	"github.com/benbjohnson/clock"
 	"github.com/pkg/errors"
+	"k8s.io/utils/ptr"
 
 	"github.com/vandeefeng/zenfeed/pkg/component"
 	"github.com/vandeefeng/zenfeed/pkg/config"
@@ -41,6 +43,7 @@ import (
 	"github.com/vandeefeng/zenfeed/pkg/telemetry"
 	"github.com/vandeefeng/zenfeed/pkg/telemetry/log"
 	telemetrymodel "github.com/vandeefeng/zenfeed/pkg/telemetry/model"
+	"github.com/vandeefeng/zenfeed/pkg/util/retry"
 	timeutil "github.com/vandeefeng/zenfeed/pkg/util/time"
 )
 
@@ -578,32 +581,52 @@ func (s *storage) blockDependencies() block.Dependencies {
 	}
 }
 
+// rewriteWithRetry attempts to rewrite a feed's labels with retries
+func (s *storage) rewriteWithRetry(ctx context.Context, item *model.Feed) (model.Labels, error) {
+	var labels model.Labels
+	err := retry.Backoff(ctx, func() error {
+		var err error
+		labels, err = s.Dependencies().Rewriter.Labels(ctx, item.Labels)
+		return err
+	}, &retry.Options{
+		MinInterval: 1 * time.Second,
+		MaxInterval: 10 * time.Second,
+		MaxAttempts: ptr.To(3),
+	})
+	return labels, err
+}
+
 func (s *storage) rewrite(ctx context.Context, feeds []*model.Feed) ([]*model.Feed, error) {
 	var (
 		rewritten = make([]*model.Feed, 0, len(feeds))
-		wg        sync.WaitGroup
 		mu        sync.Mutex
 		errs      []error
 		dropped   atomic.Int32
+		sem       = make(chan struct{}, 5) // Limit concurrent rewrites to 5
 	)
 
-	for _, item := range feeds { // TODO: Limit the concurrency & goroutine number.
+	var wg sync.WaitGroup
+	for _, item := range feeds {
 		wg.Add(1)
 		go func(item *model.Feed) {
 			defer wg.Done()
-			labels, err := s.Dependencies().Rewriter.Labels(ctx, item.Labels)
+
+			// Acquire semaphore
+			sem <- struct{}{}
+			defer func() { <-sem }() // Release semaphore
+
+			labels, err := s.rewriteWithRetry(ctx, item)
 			if err != nil {
 				mu.Lock()
 				errs = append(errs, errors.Wrap(err, "rewrite item"))
 				mu.Unlock()
-
 				return
 			}
+
 			if len(labels) == 0 {
 				log.Debug(ctx, "drop feed", "id", item.ID)
 				dropped.Add(1)
-
-				return // Drop empty labels.
+				return // Drop empty labels
 			}
 
 			item.Labels = labels
@@ -614,12 +637,24 @@ func (s *storage) rewrite(ctx context.Context, feeds []*model.Feed) ([]*model.Fe
 	}
 	wg.Wait()
 
-	switch len(errs) {
-	case 0:
-	case len(feeds) - int(dropped.Load()):
-		return nil, errs[0] // All failed.
-	default:
-		log.Error(ctx, errors.Wrap(errs[0], "rewrite feeds"), "error_count", len(errs))
+	// More granular error handling
+	if len(errs) > 0 {
+		failedCount := len(errs)
+		totalCount := len(feeds)
+		if failedCount == totalCount {
+			return nil, fmt.Errorf("all feeds failed to rewrite: %v", errs[0])
+		}
+
+		log.Warn(ctx, errors.New("some feeds failed to rewrite"),
+			"total", totalCount,
+			"failed", failedCount,
+			"first_error", errs[0])
+
+		// If more than 50% failed, consider it a critical failure
+		if float64(failedCount)/float64(totalCount) > 0.5 {
+			return nil, fmt.Errorf("too many feeds failed to rewrite (%d/%d): %v",
+				failedCount, totalCount, errs[0])
+		}
 	}
 
 	return rewritten, nil
