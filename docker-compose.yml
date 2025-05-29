@@ -105,11 +105,12 @@ configs:
         crawler_endpoint: http://crawl4ai:11235
       storage:
         feed:
+          retention: -1s  # Infinite retention
           rewrites:
             - transform:
                 to_text:
                   prompt: |
-                    {{ .summary_html_snippet }} Respond in ${LANG:-Chinese}
+                    {{ .summary_html_snippet }} Respond in chinese
               label: summary_html_snippet
             - transform:
                 to_text:

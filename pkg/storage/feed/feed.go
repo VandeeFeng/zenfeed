@@ -80,11 +80,11 @@ func (c *Config) Validate() error {
 	if c.Dir == "" {
 		c.Dir = "./data/" + subDir
 	}
-	if c.Retention <= 0 {
+	if c.Retention <= 0 && c.Retention != -1 {
 		c.Retention = 8 * timeutil.Day
 	}
-	if c.Retention < timeutil.Day || c.Retention > 15*timeutil.Day {
-		return errors.New("retention must be between 1 day and 15 days")
+	if c.Retention != -1 && c.Retention < timeutil.Day {
+		return errors.New("retention must be at least 1 day or -1 for infinite retention")
 	}
 	if c.BlockDuration <= 0 {
 		c.BlockDuration = 25 * time.Hour
@@ -507,7 +507,11 @@ func (s *storage) ensureColdBlocks(ctx context.Context) error {
 }
 
 func (s *storage) ensureRemovedExpiredBlocks(ctx context.Context, now time.Time) {
-	s.blocks.remove(now.Add(-s.Config().Retention), func(b block.Block) {
+	retention := s.Config().Retention
+	if retention == -1 {
+		return // Skip block removal for infinite retention
+	}
+	s.blocks.remove(now.Add(-retention), func(b block.Block) {
 		var err error
 		if err = b.Close(); err != nil {
 			log.Error(ctx, errors.Wrap(err, "close block"))
