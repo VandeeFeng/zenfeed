@@ -30,6 +30,8 @@ type Index interface {
 	// If value is too long, it will be ignored,
 	// because does not support regex search, so long value is not useful.
 	Add(ctx context.Context, id uint64, labels model.Labels)
+	// Remove removes an item from the index.
+	Remove(ctx context.Context, id uint64)
 }
 
 type Config struct{}
@@ -127,6 +129,24 @@ func (idx *idx) Add(ctx context.Context, id uint64, labels model.Labels) {
 
 	// Add to ids.
 	idx.ids[id] = struct{}{}
+}
+
+func (idx *idx) Remove(ctx context.Context, id uint64) {
+	ctx = telemetry.StartWith(ctx, append(idx.TelemetryLabels(), telemetrymodel.KeyOperation, "Remove")...)
+	defer func() { telemetry.End(ctx, nil) }()
+
+	idx.mu.Lock()
+	defer idx.mu.Unlock()
+
+	// Remove from all label-value maps
+	for _, values := range idx.m {
+		for _, ids := range values {
+			delete(ids, id)
+		}
+	}
+
+	// Remove from global ids set
+	delete(idx.ids, id)
 }
 
 func (idx *idx) EncodeTo(ctx context.Context, w io.Writer) (err error) {
@@ -421,6 +441,10 @@ func (m *mockIndex) Search(ctx context.Context, label string, eq bool, value str
 
 func (m *mockIndex) Add(ctx context.Context, id uint64, labels model.Labels) {
 	m.Called(ctx, id, labels)
+}
+
+func (m *mockIndex) Remove(ctx context.Context, id uint64) {
+	m.Called(ctx, id)
 }
 
 func (m *mockIndex) EncodeTo(ctx context.Context, w io.Writer) (err error) {

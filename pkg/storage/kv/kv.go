@@ -34,6 +34,7 @@ type Storage interface {
 	component.Component
 	Get(ctx context.Context, key string) (string, error)
 	Set(ctx context.Context, key string, value string, ttl time.Duration) error
+	Delete(ctx context.Context, key string) error
 }
 
 var ErrNotFound = errors.New("not found")
@@ -176,6 +177,19 @@ func (k *kv) Set(ctx context.Context, key string, value string, ttl time.Duratio
 	})
 }
 
+func (k *kv) Delete(ctx context.Context, key string) (err error) {
+	ctx = telemetry.StartWith(ctx, append(k.TelemetryLabels(), telemetrymodel.KeyOperation, "Delete")...)
+	defer func() { telemetry.End(ctx, err) }()
+
+	err = k.db.Update(func(tx *nutsdb.Tx) error {
+		return tx.Delete(bucket, []byte(key))
+	})
+	if errors.Is(err, nutsdb.ErrNotFoundKey) || strings.Contains(err.Error(), "key not found") {
+		return ErrNotFound
+	}
+	return err
+}
+
 type mockKV struct {
 	component.Mock
 }
@@ -189,5 +203,10 @@ func (m *mockKV) Get(ctx context.Context, key string) (string, error) {
 func (m *mockKV) Set(ctx context.Context, key string, value string, ttl time.Duration) error {
 	args := m.Called(ctx, key, value, ttl)
 
+	return args.Error(0)
+}
+
+func (m *mockKV) Delete(ctx context.Context, key string) error {
+	args := m.Called(ctx, key)
 	return args.Error(0)
 }

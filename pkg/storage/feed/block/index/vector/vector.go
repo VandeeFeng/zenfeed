@@ -42,6 +42,9 @@ type Index interface {
 	// Add adds feed vectors to the index.
 	// A feed may be split into multiple chunks, and each chunk is a vector.
 	Add(ctx context.Context, id uint64, vectors [][]float32) (err error)
+
+	// Remove removes a feed from the index.
+	Remove(ctx context.Context, id uint64)
 }
 
 type Config struct {
@@ -1155,4 +1158,37 @@ func (m *mockIndex) DecodeFrom(ctx context.Context, r io.Reader) error {
 	args := m.Called(ctx, r)
 
 	return args.Error(0)
+}
+
+func (m *mockIndex) Remove(ctx context.Context, id uint64) {
+	m.Called(ctx, id)
+}
+
+func (idx *idx) Remove(ctx context.Context, id uint64) {
+	ctx = telemetry.StartWith(ctx, append(idx.TelemetryLabels(), telemetrymodel.KeyOperation, "Remove")...)
+	defer func() { telemetry.End(ctx, nil) }()
+
+	idx.mu.Lock()
+	defer idx.mu.Unlock()
+
+	// Remove from all layers
+	for _, layer := range idx.layers {
+		for i, nodeID := range layer.nodes {
+			if nodeID == id {
+				// Remove from layer's nodes list
+				layer.nodes = append(layer.nodes[:i], layer.nodes[i+1:]...)
+				break
+			}
+		}
+	}
+
+	// Remove from node map
+	delete(idx.m, id)
+
+	// Remove from other nodes' friends
+	for _, node := range idx.m {
+		for _, friends := range node.friendsOnLayers {
+			delete(friends, id)
+		}
+	}
 }

@@ -191,6 +191,8 @@ func (s *server) handleFeedStatus(w http.ResponseWriter, r *http.Request) {
 		s.handleGetFeedStatus(w, r)
 	case http.MethodPost:
 		s.handleUpdateFeedStatus(w, r)
+	case http.MethodDelete:
+		s.handleDeleteFeed(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}

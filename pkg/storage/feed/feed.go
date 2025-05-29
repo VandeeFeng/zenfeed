@@ -64,6 +64,9 @@ type Storage interface {
 	// Exists checks if a feed exists in the storage.
 	// If hintTime is zero, it only checks the head block.
 	Exists(ctx context.Context, id uint64, hintTime time.Time) (bool, error)
+
+	// Delete removes a feed from storage.
+	Delete(ctx context.Context, id uint64) error
 }
 
 type Config struct {
@@ -664,6 +667,27 @@ func (s *storage) rewrite(ctx context.Context, feeds []*model.Feed) ([]*model.Fe
 	return rewritten, nil
 }
 
+func (s *storage) Delete(ctx context.Context, id uint64) (err error) {
+	ctx = telemetry.StartWith(ctx, append(s.TelemetryLabels(), telemetrymodel.KeyOperation, "Delete")...)
+	defer func() { telemetry.End(ctx, err) }()
+
+	// Find the feed in blocks
+	for _, b := range s.blocks.list(nil) {
+		exists, err := b.Exists(ctx, id)
+		if err != nil {
+			return errors.Wrap(err, "check feed existence")
+		}
+		if exists {
+			if err := b.Delete(ctx, id); err != nil {
+				return errors.Wrap(err, "delete feed from block")
+			}
+			return nil
+		}
+	}
+
+	return errors.New("feed not found")
+}
+
 type mockStorage struct {
 	component.Mock
 }
@@ -690,4 +714,9 @@ func (m *mockStorage) Exists(ctx context.Context, id uint64, hintTime time.Time)
 	args := m.Called(ctx, id, hintTime)
 
 	return args.Get(0).(bool), args.Error(1)
+}
+
+func (m *mockStorage) Delete(ctx context.Context, id uint64) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
 }

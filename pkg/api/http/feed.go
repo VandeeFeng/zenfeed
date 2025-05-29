@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -20,9 +21,8 @@ type FeedStatusRequest struct {
 // isValidReadStatus 检查阅读状态值是否有效
 func isValidReadStatus(status string) bool {
 	validStatuses := map[string]bool{
-		"read":    true,
-		"unread":  true,
-		"deleted": true,
+		"read":   true,
+		"unread": true,
 	}
 	return validStatuses[status]
 }
@@ -105,5 +105,57 @@ func (s *server) handleGetFeedStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
 		"read_status": status,
+	})
+}
+
+// handleDeleteFeed 处理删除feed的请求
+func (s *server) handleDeleteFeed(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// 从URL路径中提取feed ID
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 3 {
+		http.Error(w, "Invalid URL path", http.StatusBadRequest)
+		return
+	}
+	feedIDStr := parts[2]
+	feedID, err := strconv.ParseUint(feedIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid feed ID", http.StatusBadRequest)
+		return
+	}
+
+	// 检查feed是否存在
+	exists, err := s.Dependencies().API.FeedStorage().Exists(r.Context(), feedID, time.Now())
+	if err != nil {
+		http.Error(w, "Failed to check feed existence", http.StatusInternalServerError)
+		return
+	}
+	if !exists {
+		http.Error(w, "Feed not found", http.StatusNotFound)
+		return
+	}
+
+	// 删除feed
+	if err := s.Dependencies().API.FeedStorage().Delete(r.Context(), feedID); err != nil {
+		http.Error(w, "Failed to delete feed", http.StatusInternalServerError)
+		return
+	}
+
+	// 删除feed的状态
+	statusKey := fmt.Sprintf("feed:%d:read_status", feedID)
+	if err := s.Dependencies().API.KVStorage().Delete(r.Context(), statusKey); err != nil && !errors.Is(err, kv.ErrNotFound) {
+		// 如果状态不存在就忽略错误
+		http.Error(w, "Failed to delete feed status", http.StatusInternalServerError)
+		return
+	}
+
+	// 返回成功响应
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Feed deleted successfully",
 	})
 }

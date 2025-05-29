@@ -70,6 +70,7 @@ type Block interface {
 	Append(ctx context.Context, feeds ...*model.Feed) error
 	Query(ctx context.Context, query QueryOptions) ([]*FeedVO, error)
 	Exists(ctx context.Context, id uint64) (bool, error)
+	Delete(ctx context.Context, id uint64) error
 }
 
 type Config struct {
@@ -1424,6 +1425,41 @@ func (r filterResult) forEach(
 	return nil
 }
 
+// Delete removes a feed from the block
+func (b *block) Delete(ctx context.Context, id uint64) (err error) {
+	ctx = telemetry.StartWith(ctx, append(b.TelemetryLabels(), telemetrymodel.KeyOperation, "Delete")...)
+	defer func() { telemetry.End(ctx, err) }()
+
+	// Ensure the block is loaded
+	if err := b.ensureLoaded(ctx); err != nil {
+		return errors.Wrap(err, "ensuring block loaded")
+	}
+
+	// Remove from primary index
+	ref, ok := b.primaryIndex.Search(ctx, id)
+	if !ok {
+		return errors.New("feed not found in primary index")
+	}
+
+	// Remove from chunk
+	chunk := b.chunks[ref.Chunk]
+	if chunk == nil {
+		return errors.New("chunk not found")
+	}
+
+	// Remove from all indexes
+	b.primaryIndex.Remove(ctx, id)
+	b.invertedIndex.Remove(ctx, id)
+	b.vectorIndex.Remove(ctx, id)
+
+	// Remove from chunk
+	if err := chunk.Delete(ctx, ref.Offset); err != nil {
+		return errors.Wrap(err, "delete from chunk")
+	}
+
+	return nil
+}
+
 type mockBlock struct {
 	component.Mock
 }
@@ -1480,4 +1516,9 @@ func (m *mockBlock) State() State {
 	args := m.Called()
 
 	return args.Get(0).(State)
+}
+
+func (m *mockBlock) Delete(ctx context.Context, id uint64) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
 }

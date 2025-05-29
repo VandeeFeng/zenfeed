@@ -63,6 +63,9 @@ type File interface {
 
 	// Range ranges over all feeds in the file.
 	Range(ctx context.Context, iter func(feed *Feed, offset uint64) (err error)) (err error)
+
+	// Delete marks a feed as deleted at the given offset.
+	Delete(ctx context.Context, offset uint64) error
 }
 
 // Config for a chunk file.
@@ -738,4 +741,40 @@ func (m *mockFile) EnsureReadonly(ctx context.Context) error {
 	args := m.Called(ctx)
 
 	return args.Error(0)
+}
+
+func (m *mockFile) Delete(ctx context.Context, offset uint64) error {
+	args := m.Called(ctx, offset)
+	return args.Error(0)
+}
+
+func (f *file) Delete(ctx context.Context, offset uint64) (err error) {
+	ctx = telemetry.StartWith(ctx, append(f.TelemetryLabels(), telemetrymodel.KeyOperation, "Delete")...)
+	defer func() { telemetry.End(ctx, err) }()
+
+	// For now, we'll just mark the feed as deleted by setting its ID to 0
+	// This is a simple implementation - in a real system you might want to:
+	// 1. Add a deletion marker
+	// 2. Implement garbage collection
+	// 3. Handle space reuse
+	// 4. Update indexes
+
+	// Read the feed first to validate the offset
+	_, err = f.Read(ctx, offset)
+	if err != nil {
+		return errors.Wrap(err, "read feed")
+	}
+
+	// Mark as deleted by writing a special marker
+	// For now we'll just write 0s to the ID field
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	// Write zeros to mark as deleted
+	zeros := make([]byte, 8) // uint64 size
+	if err := f.commitAppendToFile(zeros, offset); err != nil {
+		return errors.Wrap(err, "write deletion marker")
+	}
+
+	return nil
 }

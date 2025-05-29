@@ -29,6 +29,8 @@ type Index interface {
 	IDs(ctx context.Context) (ids map[uint64]bool)
 	// Count returns the number of feeds in the index.
 	Count(ctx context.Context) (count uint32)
+	// Remove removes an item from the index.
+	Remove(ctx context.Context, id uint64)
 }
 
 type Config struct{}
@@ -128,6 +130,15 @@ func (idx *idx) Count(ctx context.Context) (count uint32) {
 	defer idx.mu.RUnlock()
 
 	return uint32(len(idx.m))
+}
+
+func (idx *idx) Remove(ctx context.Context, id uint64) {
+	ctx = telemetry.StartWith(ctx, append(idx.TelemetryLabels(), telemetrymodel.KeyOperation, "Remove")...)
+	defer func() { telemetry.End(ctx, nil) }()
+
+	idx.mu.Lock()
+	defer idx.mu.Unlock()
+	delete(idx.m, id)
 }
 
 func (idx *idx) EncodeTo(ctx context.Context, w io.Writer) (err error) {
@@ -270,6 +281,10 @@ func (m *mockIndex) Count(ctx context.Context) (count uint32) {
 	args := m.Called(ctx)
 
 	return args.Get(0).(uint32)
+}
+
+func (m *mockIndex) Remove(ctx context.Context, id uint64) {
+	m.Called(ctx, id)
 }
 
 func (m *mockIndex) EncodeTo(ctx context.Context, w io.Writer) (err error) {

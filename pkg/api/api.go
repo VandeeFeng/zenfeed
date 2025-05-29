@@ -68,6 +68,9 @@ type API interface {
 
 	// KVStorage returns the KV storage interface
 	KVStorage() kv.Storage
+
+	// FeedStorage returns the Feed storage interface
+	FeedStorage() feed.Storage
 }
 
 type Config struct {
@@ -525,6 +528,10 @@ func (a *api) KVStorage() kv.Storage {
 	return a.Dependencies().KVStorage
 }
 
+func (a *api) FeedStorage() feed.Storage {
+	return a.Dependencies().FeedStorage
+}
+
 type mockAPI struct {
 	component.Mock
 }
@@ -601,4 +608,9 @@ func (m *mockAPI) Write(ctx context.Context, req *WriteRequest) (resp *WriteResp
 
 func (m *mockAPI) KVStorage() kv.Storage {
 	return nil
+}
+
+func (m *mockAPI) FeedStorage() feed.Storage {
+	args := m.Called()
+	return args.Get(0).(feed.Storage)
 }
